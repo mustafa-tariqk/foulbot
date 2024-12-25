@@ -1,6 +1,7 @@
 package main
 
 import (
+	"archive/zip"
 	"encoding/json"
 	"fmt"
 	"foulbot/dao"
@@ -9,8 +10,10 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path/filepath"
 	"runtime"
 	"sort"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -347,52 +350,97 @@ func handleInputs(bot *discordgo.Session, points map[string]int64) {
 				// Exit current process only after ensuring new one started
 				os.Exit(0)
 			case "logs":
-				pointsFile, err := os.Open(POINTS_JSON)
+				// Create a temporary zip file
+				zipFile, err := os.CreateTemp("", "foulbot-logs-*.zip")
 				if err != nil {
 					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 						Type: discordgo.InteractionResponseChannelMessageWithSource,
 						Data: &discordgo.InteractionResponseData{
-							Content: fmt.Sprintf("Failed to open points.json: %s", err),
+							Content: fmt.Sprintf("Failed to create temp zip: %s", err),
+							Flags:   discordgo.MessageFlagsEphemeral,
 						},
 					})
 					return
 				}
-				defer pointsFile.Close()
+				defer os.Remove(zipFile.Name())
+				defer zipFile.Close()
 
-				pollsFile, err := os.Open(POLLS_JSON)
+				// Create zip writer
+				zipWriter := zip.NewWriter(zipFile)
+				defer zipWriter.Close()
+
+				// Walk through current directory
+				err = filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
+					if err != nil {
+						return err
+					}
+
+					// Skip directories and binary files
+					if info.IsDir() || strings.HasPrefix(path, "foulbot-") {
+						return nil
+					}
+
+					// Create zip entry
+					f, err := zipWriter.Create(path)
+					if err != nil {
+						return err
+					}
+
+					// Copy file contents to zip
+					content, err := os.ReadFile(path)
+					if err != nil {
+						return err
+					}
+					_, err = f.Write(content)
+					return err
+				})
+
 				if err != nil {
 					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 						Type: discordgo.InteractionResponseChannelMessageWithSource,
 						Data: &discordgo.InteractionResponseData{
-							Content: fmt.Sprintf("Failed to open polls.json: %s", err),
+							Content: fmt.Sprintf("Failed to create zip: %s", err),
+							Flags:   discordgo.MessageFlagsEphemeral,
 						},
 					})
 					return
 				}
-				defer pollsFile.Close()
+				zipWriter.Close()
+
+				// Reopen zip file for reading
+				zipReader, err := os.Open(zipFile.Name())
+				if err != nil {
+					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: fmt.Sprintf("Failed to read zip: %s", err),
+							Flags:   discordgo.MessageFlagsEphemeral,
+						},
+					})
+					return
+				}
+				defer zipReader.Close()
 
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
-						Flags: discordgo.MessageFlagsEphemeral,
+						Content: "Uploading logs...",
+						Flags:   discordgo.MessageFlagsEphemeral,
 					},
 				})
 
 				_, err = s.FollowupMessageCreate(i.Interaction, false, &discordgo.WebhookParams{
-					Content: "Here are the points.json and polls.json files:",
+					Content: "Here are the log files:",
+					Flags:   discordgo.MessageFlagsEphemeral,
 					Files: []*discordgo.File{
 						{
-							Name:   "points.json",
-							Reader: pointsFile,
-						},
-						{
-							Name:   "polls.json",
-							Reader: pollsFile,
+							Name:   "foulbot-logs.zip",
+							Reader: zipReader,
 						},
 					},
 				})
 				if err != nil {
-					log.Printf("Failed to upload points.json and polls.json: %v", err)
+					log.Printf("Failed to upload logs zip: %v", err)
 				}
 			}
 		}

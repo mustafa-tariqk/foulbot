@@ -12,7 +12,7 @@ build:
 	GOOS=darwin GOARCH=arm64 go build -gcflags=all="-l -B -C" -ldflags "-w -s -X main.VERSION=$(VERSION)" -o $(BINARY_NAME)-darwin-arm64 main.go
 	GOOS=windows GOARCH=arm64 go build -gcflags=all="-l -B -C" -ldflags "-w -s -H windowsgui -X main.VERSION=$(VERSION)" -o $(BINARY_NAME)-windows-arm64.exe main.go
 
-run:
+run: clean
 	OS=$$(uname -s | tr '[:upper:]' '[:lower:]') ; \
 	ARCH=$$(uname -m) ; \
 	EXTENSION=$$(if [ $$OS = "windows" ]; then echo ".exe"; fi) ; \
