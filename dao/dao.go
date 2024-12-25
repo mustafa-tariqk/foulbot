@@ -2,7 +2,6 @@ package dao
 
 import (
 	"database/sql"
-	"log"
 
 	_ "modernc.org/sqlite"
 )
@@ -23,26 +22,40 @@ func init() {
 		"_mmap_size=2147483648&"+
 		"_page_size=8192")
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
+	makeTables()
 }
 
-func Clear() {
-	// drop all tables
-	_, err := db.Exec("DROP TABLE IF EXISTS polls")
-	if err != nil {
-		log.Fatal(err)
-	}
-	_, err = db.Exec("DROP TABLE IF EXISTS votes")
-	if err != nil {
-		log.Fatal(err)
-	}
-	_, err = db.Exec("DROP TABLE IF EXISTS gainers")
-	if err != nil {
-		log.Fatal(err)
-	}
-	_, err = db.Exec("DROP TABLE IF EXISTS yearly")
-	if err != nil {
-		log.Fatal(err)
-	}
+func makeTables() {
+	db.Exec(`
+	    CREATE TABLE "polls" (
+			"channel_id" TEXT NOT NULL,
+    		"message_id" TEXT NOT NULL,
+    		"points"	 INTEGER NOT NULL,
+    		"reason"	 TEXT NOT NULL,
+    		"expiry"	 TEXT NOT NULL,
+    		"passed"	 INTEGER,
+    		PRIMARY KEY("channel_id","message_id")
+        );
+
+		CREATE TABLE "gainers" (
+			"channel_id" TEXT NOT NULL,
+			"message_id" TEXT NOT NULL,
+			"user_id"	 TEXT NOT NULL,
+			PRIMARY KEY("channel_id","message_id"),
+			FOREIGN KEY("channel_id") REFERENCES "polls"("channel_id"),
+			FOREIGN KEY("message_id") REFERENCES "polls"("message_id")
+		);
+
+		CREATE TABLE "votes" (
+			"channel_id" TEXT NOT NULL,
+			"message_id" TEXT NOT NULL,
+			"user_id"	 TEXT NOT NULL,
+			"value"	INTEGER NOT NULL,
+			PRIMARY KEY("channel_id","message_id"),
+			FOREIGN KEY("channel_id") REFERENCES "polls"("channel_id"),
+			FOREIGN KEY("message_id") REFERENCES "polls"("message_id")
+		);
+	`)
 }

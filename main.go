@@ -4,7 +4,6 @@ import (
 	"archive/zip"
 	"encoding/json"
 	"fmt"
-	"foulbot/dao"
 	"log"
 	"net/http"
 	"os"
@@ -99,7 +98,6 @@ func loadEnv() (*discordgo.Session, map[string]int64, string, string) {
 		log.Fatal(err)
 	}
 	points := loadPoints()
-	dao.Clear()
 
 	return bot, points, config.DiscordGuildID, config.DiscordAppID
 }
@@ -376,7 +374,7 @@ func handleInputs(bot *discordgo.Session, points map[string]int64) {
 					}
 
 					// Skip directories and binary files
-					if info.IsDir() || strings.HasPrefix(path, "foulbot-") {
+					if info.IsDir() || strings.HasPrefix(path, "foulbot-") || strings.HasPrefix(path, ".foulbot-") {
 						return nil
 					}
 

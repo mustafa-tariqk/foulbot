@@ -24,6 +24,7 @@ clean:
 
 release: build
 	@echo "Creating release $(VERSION)..."
+	@gh release delete $(shell gh release list | awk 'NR==2{print $$1}') --yes || true
 	@gh release create $(VERSION) \
 		$(BINARY_NAME)-linux-amd64 \
 		$(BINARY_NAME)-darwin-amd64 \
