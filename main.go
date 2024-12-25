@@ -20,17 +20,15 @@ import (
 )
 
 var (
-	VERSION                string
-	DISCORD_TOKEN          = "DISCORD_TOKEN"
-	DISCORD_GUILD_ID       = "DISCORD_GUILD_ID"
-	DISCORD_APPLICATION_ID = "DISCORD_APPLICATION_ID"
-	POINTS_JSON            = "points.json"
-	POLLS_JSON             = "polls.json"
-	CONFIG_JSON            = "config.json"
-	POLL_LENGTH            = 24 * time.Hour
-	pollsMutex             sync.RWMutex
-	activePolls            = make(map[string]*VotePoll)
-	NUMBERS                = []string{":one:", ":two:", ":three:", ":four:", ":five:", ":six:", ":seven:", ":eight:", ":nine:", ":keycap_ten:"}
+	VERSION     string
+	POINTS_JSON = "points.json"
+	POLLS_JSON  = "polls.json"
+	CONFIG_JSON = "config.json"
+	POLL_LENGTH = 24 * time.Hour
+	pollsMutex  sync.RWMutex
+	activePolls = make(map[string]*VotePoll)
+	NUMBERS     = []string{":one:", ":two:", ":three:", ":four:", ":five:",
+		":six:", ":seven:", ":eight:", ":nine:", ":keycap_ten:"}
 )
 
 type userPoints struct {
@@ -98,7 +96,7 @@ func loadEnv() (*discordgo.Session, map[string]int64, string, string) {
 		log.Fatal(err)
 	}
 	points := loadPoints()
-	dao.MakeTables()
+	dao.Clear()
 
 	return bot, points, config.DiscordGuildID, config.DiscordAppID
 }

@@ -27,38 +27,22 @@ func init() {
 	}
 }
 
-func MakeTables() {
-	db.Exec(`
-        CREATE TABLE IF NOT EXISTS polls (
-            messageid TEXT NOT NULL,
-            channelid TEXT NOT NULL,
-            creatorid TEXT NOT NULL,
-            points INTEGER NOT NULL,
-            reason TEXT,
-            expiry TIMESTAMP NOT NULL,
-            passed BOOLEAN,
-            PRIMARY KEY (messageid, channelid)
-        );
-
-        CREATE TABLE IF NOT EXISTS votes (
-            messageid TEXT NOT NULL,
-            channelid TEXT NOT NULL,
-            voterid TEXT NOT NULL,
-            FOREIGN KEY (messageid, channelid) REFERENCES polls(messageid, channelid)
-        );
-
-        CREATE TABLE IF NOT EXISTS gainers (
-            messageid TEXT NOT NULL,
-            channelid TEXT NOT NULL,
-            gainerid TEXT NOT NULL,
-            FOREIGN KEY (messageid, channelid) REFERENCES polls(messageid, channelid)
-        );
-
-        CREATE TABLE IF NOT EXISTS yearly (
-            userid TEXT NOT NULL,
-            year INTEGER NOT NULL,
-            points INTEGER NOT NULL,
-            PRIMARY KEY (userid, year)
-        );
-    `)
+func Clear() {
+	// drop all tables
+	_, err := db.Exec("DROP TABLE IF EXISTS polls")
+	if err != nil {
+		log.Fatal(err)
+	}
+	_, err = db.Exec("DROP TABLE IF EXISTS votes")
+	if err != nil {
+		log.Fatal(err)
+	}
+	_, err = db.Exec("DROP TABLE IF EXISTS gainers")
+	if err != nil {
+		log.Fatal(err)
+	}
+	_, err = db.Exec("DROP TABLE IF EXISTS yearly")
+	if err != nil {
+		log.Fatal(err)
+	}
 }
