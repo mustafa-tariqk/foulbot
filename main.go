@@ -102,8 +102,29 @@ func handleExpiredPolls(bot *discordgo.Session) {
 							Inline: true,
 						},
 						{
-							Name:  "Reason",
-							Value: fmt.Sprintf("[%s](https://discord.com/channels/%s/%s/%s)", poll.Reason, bot.State.Guilds[0].ID, poll.ChannelId, poll.MessageId),
+							Name:   "Reason",
+							Value:  fmt.Sprintf("[%s](https://discord.com/channels/%s/%s/%s)", poll.Reason, bot.State.Guilds[0].ID, poll.ChannelId, poll.MessageId),
+							Inline: false,
+						},
+						{
+							Name: "Votes For",
+							Value: func() string {
+								if len(poll.VotesFor) == 0 {
+									return "none"
+								}
+								return fmt.Sprintf("<@%s>", strings.Join(poll.VotesFor, "> <@"))
+							}(),
+							Inline: true,
+						},
+						{
+							Name: "Votes Against",
+							Value: func() string {
+								if len(poll.VotesAgainst) == 0 {
+									return "none"
+								}
+								return fmt.Sprintf("<@%s>", strings.Join(poll.VotesAgainst, "> <@"))
+							}(),
+							Inline: true,
 						},
 					},
 				}
