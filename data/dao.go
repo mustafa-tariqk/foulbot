@@ -31,6 +31,9 @@ var collectVotesQuery string
 //go:embed queries/finalize_poll.sql
 var finalizePollQuery string
 
+//go:embed queries/collect_gainers.sql
+var collectGainersQuery string
+
 var db *sql.DB
 var err error
 
@@ -157,7 +160,7 @@ func EvaluatePolls() (polls []EvaluatedPoll) {
 			poll.Passed = false
 		}
 
-		rows, err := db.Query("SELECT user_id FROM gainers WHERE channel_id = ? AND message_id = ?", poll.ChannelId, poll.MessageId)
+		rows, err := db.Query(collectGainersQuery, poll.ChannelId, poll.MessageId)
 		if err != nil {
 			panic(err)
 		}
