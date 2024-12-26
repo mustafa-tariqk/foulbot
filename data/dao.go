@@ -35,7 +35,7 @@ var db *sql.DB
 var err error
 
 type Poll struct {
-	MesssageId string
+	MessageId  string
 	ChannelId  string
 	CreatorId  string
 	Points     int64
@@ -45,7 +45,7 @@ type Poll struct {
 }
 
 type EvaluatedPoll struct {
-	MesssageId   string
+	MessageId    string
 	ChannelId    string
 	CreatorId    string
 	Points       int64
@@ -86,13 +86,13 @@ func init() {
 }
 
 func CreatePoll(poll Poll) {
-	_, err = db.Exec(insertPollQuery, poll.ChannelId, poll.MesssageId, poll.CreatorId, poll.Points, poll.Reason, poll.Expiry)
+	_, err = db.Exec(insertPollQuery, poll.ChannelId, poll.MessageId, poll.CreatorId, poll.Points, poll.Reason, poll.Expiry)
 	if err != nil {
 		panic(err)
 	}
 
 	for _, gainerId := range poll.GainderIds {
-		_, err = db.Exec(insertGainersQuery, poll.ChannelId, poll.MesssageId, gainerId)
+		_, err = db.Exec(insertGainersQuery, poll.ChannelId, poll.MessageId, gainerId)
 		if err != nil {
 			panic(err)
 		}
@@ -114,7 +114,7 @@ func EvaluatePolls() (polls []EvaluatedPoll) {
 	defer expiredRows.Close()
 	for expiredRows.Next() {
 		var poll EvaluatedPoll
-		err = expiredRows.Scan(&poll.MesssageId, &poll.ChannelId, &poll.CreatorId, &poll.Points, &poll.Reason, &poll.Expiry)
+		err = expiredRows.Scan(&poll.MessageId, &poll.ChannelId, &poll.CreatorId, &poll.Points, &poll.Reason, &poll.Expiry)
 		if err != nil {
 			panic(err)
 		}
@@ -123,7 +123,7 @@ func EvaluatePolls() (polls []EvaluatedPoll) {
 
 	for i := range polls {
 		poll := &polls[i]
-		votesForRows, err := db.Query(collectVotesQuery, poll.ChannelId, poll.MesssageId, 1)
+		votesForRows, err := db.Query(collectVotesQuery, poll.ChannelId, poll.MessageId, 1)
 		if err != nil {
 			panic(err)
 		}
@@ -137,7 +137,7 @@ func EvaluatePolls() (polls []EvaluatedPoll) {
 			poll.VotesFor = append(poll.VotesFor, voterId)
 		}
 
-		votesAgainstRows, err := db.Query(collectVotesQuery, poll.ChannelId, poll.MesssageId, 0)
+		votesAgainstRows, err := db.Query(collectVotesQuery, poll.ChannelId, poll.MessageId, 0)
 		if err != nil {
 			panic(err)
 		}
@@ -156,7 +156,7 @@ func EvaluatePolls() (polls []EvaluatedPoll) {
 		} else {
 			poll.Passed = false
 		}
-		_, err = db.Exec(finalizePollQuery, poll.Passed, poll.ChannelId, poll.MesssageId)
+		_, err = db.Exec(finalizePollQuery, poll.Passed, poll.ChannelId, poll.MessageId)
 		if err != nil {
 			panic(err)
 		}
