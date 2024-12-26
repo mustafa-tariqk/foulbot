@@ -1,4 +1,4 @@
-CREATE TABLE "polls" (
+CREATE TABLE IF NOT EXISTS "polls" (
     "channel_id" TEXT NOT NULL,
     "message_id" TEXT NOT NULL,
     "creator_id" TEXT NOT NULL,
@@ -9,7 +9,7 @@ CREATE TABLE "polls" (
     PRIMARY KEY ("channel_id", "message_id")
 );
 
-CREATE TABLE "gainers" (
+CREATE TABLE IF NOT EXISTS "gainers" (
     "channel_id" TEXT NOT NULL,
     "message_id" TEXT NOT NULL,
     "user_id" TEXT NOT NULL,
@@ -18,7 +18,7 @@ CREATE TABLE "gainers" (
     FOREIGN KEY ("message_id") REFERENCES "polls" ("message_id")
 );
 
-CREATE TABLE "votes" (
+CREATE TABLE IF NOT EXISTS "votes" (
     "channel_id" TEXT NOT NULL,
     "message_id" TEXT NOT NULL,
     "user_id" TEXT NOT NULL,

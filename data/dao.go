@@ -35,13 +35,13 @@ var db *sql.DB
 var err error
 
 type Poll struct {
-	MessageId  string
-	ChannelId  string
-	CreatorId  string
-	Points     int64
-	Reason     string
-	GainderIds []string
-	Expiry     string
+	MessageId string
+	ChannelId string
+	CreatorId string
+	Points    int64
+	Reason    string
+	GainerIds []string
+	Expiry    string
 }
 
 type EvaluatedPoll struct {
@@ -50,7 +50,7 @@ type EvaluatedPoll struct {
 	CreatorId    string
 	Points       int64
 	Reason       string
-	GainderIds   []string
+	GainerIds    []string
 	VotesFor     []string
 	VotesAgainst []string
 	Passed       bool
@@ -91,7 +91,7 @@ func CreatePoll(poll Poll) {
 		panic(err)
 	}
 
-	for _, gainerId := range poll.GainderIds {
+	for _, gainerId := range poll.GainerIds {
 		_, err = db.Exec(insertGainersQuery, poll.ChannelId, poll.MessageId, gainerId)
 		if err != nil {
 			panic(err)
@@ -156,6 +156,21 @@ func EvaluatePolls() (polls []EvaluatedPoll) {
 		} else {
 			poll.Passed = false
 		}
+
+		rows, err := db.Query("SELECT user_id FROM gainers WHERE channel_id = ? AND message_id = ?", poll.ChannelId, poll.MessageId)
+		if err != nil {
+			panic(err)
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var gainerId string
+			err = rows.Scan(&gainerId)
+			if err != nil {
+				panic(err)
+			}
+			poll.GainerIds = append(poll.GainerIds, gainerId)
+		}
+
 		_, err = db.Exec(finalizePollQuery, poll.Passed, poll.ChannelId, poll.MessageId)
 		if err != nil {
 			panic(err)

@@ -83,12 +83,17 @@ func handleExpiredPolls(bot *discordgo.Session) {
 			evaluatedPolls := data.EvaluatePolls()
 			for _, poll := range evaluatedPolls {
 				embed := &discordgo.MessageEmbed{
-					Title: "Poll Result",
-					Color: 0x57F287, // Green for passed
+					Title: map[bool]string{true: "Passed", false: "Failed"}[poll.Passed],
+					Color: 0x417e4b, // Green for passed
 					Fields: []*discordgo.MessageEmbedField{
 						{
 							Name:   "Creator",
 							Value:  fmt.Sprintf("<@%s>", poll.CreatorId),
+							Inline: true,
+						},
+						{
+							Name:   "Gainers",
+							Value:  fmt.Sprintf("<@%s>", strings.Join(poll.GainerIds, "> <@")),
 							Inline: true,
 						},
 						{
@@ -97,26 +102,15 @@ func handleExpiredPolls(bot *discordgo.Session) {
 							Inline: true,
 						},
 						{
-							Name:   "Reason",
-							Value:  poll.Reason,
-							Inline: false,
-						},
-						{
-							Name:   "Result",
-							Value:  fmt.Sprintf("Status: %s", map[bool]string{true: "Passed", false: "Failed"}[poll.Passed]),
-							Inline: false,
+							Name:  "Reason",
+							Value: fmt.Sprintf("[%s](https://discord.com/channels/%s/%s/%s)", poll.Reason, bot.State.Guilds[0].ID, poll.ChannelId, poll.MessageId),
 						},
 					},
-					Timestamp: time.Now().Format(time.RFC3339),
 				}
 
 				if !poll.Passed {
-					embed.Color = 0xED4245 // Red for failed
+					embed.Color = 0xc94543 // Red for failed
 				}
-
-				messageLink := fmt.Sprintf("https://discord.com/channels/%s/%s/%s",
-					bot.State.Guilds[0].ID, poll.ChannelId, poll.MessageId)
-				embed.URL = messageLink
 
 				bot.ChannelMessageSendEmbed(poll.ChannelId, embed)
 			}
@@ -174,26 +168,23 @@ func handleInputs(bot *discordgo.Session) {
 									Inline: false,
 								},
 							},
-							Timestamp: time.Now().Format(time.RFC3339),
 						},
 					},
 					Components: []discordgo.MessageComponent{
 						discordgo.ActionsRow{
 							Components: []discordgo.MessageComponent{
 								discordgo.Button{
-									Label:    "Approve",
 									Style:    discordgo.SuccessButton,
 									CustomID: "vote_yes",
 									Emoji: &discordgo.ComponentEmoji{
-										Name: "👍",
+										Name: "\U0001F44D",
 									},
 								},
 								discordgo.Button{
-									Label:    "Reject",
 									Style:    discordgo.DangerButton,
 									CustomID: "vote_no",
 									Emoji: &discordgo.ComponentEmoji{
-										Name: "👎",
+										Name: "\U0001F44E",
 									},
 								},
 							},
@@ -214,13 +205,13 @@ func handleInputs(bot *discordgo.Session) {
 				}
 
 				poll := &data.Poll{
-					MessageId:  pollMsg.ID,
-					ChannelId:  i.ChannelID,
-					CreatorId:  i.Member.User.ID,
-					Points:     number,
-					Reason:     reason,
-					GainderIds: []string{user.ID},
-					Expiry:     time.Now().Add(POLL_LENGTH).Format(time.RFC3339),
+					MessageId: pollMsg.ID,
+					ChannelId: i.ChannelID,
+					CreatorId: i.Member.User.ID,
+					Points:    number,
+					Reason:    reason,
+					GainerIds: []string{user.ID},
+					Expiry:    time.Now().Add(POLL_LENGTH).Format(time.RFC3339),
 				}
 
 				data.CreatePoll(*poll)

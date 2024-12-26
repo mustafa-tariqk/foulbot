@@ -20,7 +20,7 @@ run: clean
 	./$(BINARY_NAME)-$$OS-$$ARCH$$EXTENSION
 
 clean:
-	rm -f $(BINARY_NAME)*
+	rm -f $(BINARY_NAME)-*
 
 release: build
 	@echo "Creating release $(VERSION)..."
