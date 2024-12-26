@@ -216,10 +216,16 @@ func handleInputs(bot *discordgo.Session) {
 
 				data.CreatePoll(*poll)
 			case "leaderboard":
+				var year string
+				if len(options) > 0 {
+					year = options[0].StringValue()
+				} else {
+					year = strconv.Itoa(time.Now().Year())
+				}
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
-						Embeds: []*discordgo.MessageEmbed{create_leaderboard()},
+						Embeds: []*discordgo.MessageEmbed{create_leaderboard(year)},
 					},
 				})
 			case "version":
@@ -411,12 +417,10 @@ func handleInputs(bot *discordgo.Session) {
 				})
 			}
 		}
-		// ...existing interaction handlers...
 	})
 }
 
-func create_leaderboard() *discordgo.MessageEmbed {
-	var year string = strconv.Itoa(time.Now().Year())
+func create_leaderboard(year string) *discordgo.MessageEmbed {
 	leaderboard := data.Leaderboard(year)
 	description := ""
 	for i, position := range leaderboard {
@@ -460,7 +464,14 @@ func establishCommands(bot *discordgo.Session, guildId string, appId string) {
 		{
 			Name:        "leaderboard",
 			Description: fmt.Sprintf("Displays a top %d leaderboard", len(NUMBERS)),
-			Options:     []*discordgo.ApplicationCommandOption{},
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "year",
+					Description: "Year to show leaderboard for (defaults to current year)",
+					Required:    false,
+				},
+			},
 		},
 		{
 			Name:        "version",
