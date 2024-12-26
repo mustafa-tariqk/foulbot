@@ -12,6 +12,7 @@
 !LICENSE
 
 !Makefile
+!*.sql
 
 # ...even if they are in subdirectories
 !*/
