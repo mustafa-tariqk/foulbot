@@ -4,7 +4,7 @@ import (
 	"archive/zip"
 	"encoding/json"
 	"fmt"
-	"foulbot/dao"
+	"foulbot/data"
 	"log"
 	"net/http"
 	"os"
@@ -12,9 +12,8 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime"
-	"sort"
+	"strconv"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 
@@ -24,34 +23,11 @@ import (
 
 var (
 	VERSION     string
-	POINTS_JSON = "points.json"
-	POLLS_JSON  = "polls.json"
 	CONFIG_JSON = "config.json"
-	POLL_LENGTH = 24 * time.Hour
-	pollsMutex  sync.RWMutex
-	activePolls = make(map[string]*VotePoll)
+	POLL_LENGTH = 10 * time.Second
 	NUMBERS     = []string{":one:", ":two:", ":three:", ":four:", ":five:",
 		":six:", ":seven:", ":eight:", ":nine:", ":keycap_ten:"}
 )
-
-type userPoints struct {
-	userID string
-	points int64
-}
-
-type VotePoll struct {
-	MessageID string
-	ChannelID string
-	UserID    string
-	CreatorID string
-	Points    int64
-	Reason    string
-	ExpiresAt time.Time
-}
-
-type StoredPolls struct {
-	Polls map[string]*VotePoll `json:"polls"`
-}
 
 type Config struct {
 	DiscordToken   string `json:"discord_token"`
@@ -60,10 +36,9 @@ type Config struct {
 }
 
 func main() {
-	bot, points, guildId, appId := loadEnv()
+	bot, guildId, appId := loadEnv()
 
-	handleInputs(bot, points)
-	handlePollsMutex(bot)
+	handleInputs(bot)
 
 	err := bot.Open()
 	if err != nil {
@@ -71,19 +46,18 @@ func main() {
 	}
 	defer bot.Close()
 
-	handleExpiredPolls(bot, points)
+	handleExpiredPolls(bot)
 
 	establishCommands(bot, guildId, appId)
 	fmt.Println("Bot is running...")
 
-	// Runs forever, shut down with ctrl+c
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-sc
 	fmt.Println("Bot is shutting down...")
 }
 
-func loadEnv() (*discordgo.Session, map[string]int64, string, string) {
+func loadEnv() (*discordgo.Session, string, string) {
 	configData, err := os.ReadFile(CONFIG_JSON)
 	if err != nil {
 		log.Fatalf("could not read config file: %s", err)
@@ -98,96 +72,53 @@ func loadEnv() (*discordgo.Session, map[string]int64, string, string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	points := loadPoints()
-	dao.Clear()
 
-	return bot, points, config.DiscordGuildID, config.DiscordAppID
+	return bot, config.DiscordGuildID, config.DiscordAppID
 }
 
-func loadPoints() map[string]int64 {
-	points := make(map[string]int64)
-	if _, err := os.Stat(POINTS_JSON); os.IsNotExist(err) {
-		data, err := json.Marshal(points)
-		if err != nil {
-			log.Fatalf("could not marshal empty points: %s", err)
-		}
-		if err := os.WriteFile(POINTS_JSON, data, 0644); err != nil {
-			log.Fatalf("could not create points file: %s", err)
-		}
-	} else {
-		data, err := os.ReadFile(POINTS_JSON)
-		if err != nil {
-			log.Fatalf("could not read points file: %s", err)
-		}
-		if err := json.Unmarshal(data, &points); err != nil {
-			log.Fatalf("could not unmarshal points: %s", err)
-		}
-	}
+func handleExpiredPolls(bot *discordgo.Session) {
+	ticker := time.NewTicker(1 * time.Minute)
+	go func() {
+		for range ticker.C {
+			evaluatedPolls := data.EvaluatePolls()
+			for _, poll := range evaluatedPolls {
+				embed := &discordgo.MessageEmbed{
+					Title: map[bool]string{true: "Passed", false: "Failed"}[poll.Passed],
+					Color: 0x417e4b, // Green for passed
+					Fields: []*discordgo.MessageEmbedField{
+						{
+							Name:   "Creator",
+							Value:  fmt.Sprintf("<@%s>", poll.CreatorId),
+							Inline: true,
+						},
+						{
+							Name:   "Gainers",
+							Value:  fmt.Sprintf("<@%s>", strings.Join(poll.GainerIds, "> <@")),
+							Inline: true,
+						},
+						{
+							Name:   "Points",
+							Value:  fmt.Sprintf("%+d", poll.Points),
+							Inline: true,
+						},
+						{
+							Name:  "Reason",
+							Value: fmt.Sprintf("[%s](https://discord.com/channels/%s/%s/%s)", poll.Reason, bot.State.Guilds[0].ID, poll.ChannelId, poll.MessageId),
+						},
+					},
+				}
 
-	return points
+				if !poll.Passed {
+					embed.Color = 0xc94543 // Red for failed
+				}
+
+				bot.ChannelMessageSendEmbed(poll.ChannelId, embed)
+			}
+		}
+	}()
 }
 
-func loadPolls() map[string]*VotePoll {
-	polls := make(map[string]*VotePoll)
-	if _, err := os.Stat(POLLS_JSON); os.IsNotExist(err) {
-		savePolls(polls)
-		return polls
-	}
-
-	data, err := os.ReadFile(POLLS_JSON)
-	if err != nil {
-		log.Fatalf("could not read polls file: %s", err)
-	}
-
-	var storedPolls StoredPolls
-	if err := json.Unmarshal(data, &storedPolls); err != nil {
-		log.Fatalf("could not unmarshal polls: %s", err)
-	}
-
-	// Set default values for missing parameters
-	for id, poll := range storedPolls.Polls {
-		if poll.CreatorID == "" {
-			poll.CreatorID = "" // Set a default creator ID
-		}
-		// Add more default value checks as needed
-		storedPolls.Polls[id] = poll
-	}
-
-	return storedPolls.Polls
-}
-
-func savePolls(polls map[string]*VotePoll) {
-	storedPolls := StoredPolls{Polls: polls}
-	data, err := json.MarshalIndent(storedPolls, "", "    ")
-	if err != nil {
-		log.Fatalf("could not marshal polls: %s", err)
-	}
-	if err := os.WriteFile(POLLS_JSON, data, 0644); err != nil {
-		log.Fatalf("could not write polls file: %s", err)
-	}
-}
-
-func handleExpiredPolls(bot *discordgo.Session, points map[string]int64) {
-	polls := loadPolls()
-	now := time.Now()
-
-	for _, poll := range polls {
-		if now.After(poll.ExpiresAt) {
-			concludePoll(bot, poll, points)
-		} else {
-			pollsMutex.Lock()
-			activePolls[poll.MessageID] = poll
-			pollsMutex.Unlock()
-
-			timeUntilExpiry := time.Until(poll.ExpiresAt)
-			time.AfterFunc(timeUntilExpiry, func() {
-				concludePoll(bot, poll, points)
-			})
-		}
-	}
-}
-
-func handleInputs(bot *discordgo.Session, points map[string]int64) {
+func handleInputs(bot *discordgo.Session) {
 	bot.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		if i.Type == discordgo.InteractionApplicationCommand {
 			options := i.ApplicationCommandData().Options
@@ -237,7 +168,26 @@ func handleInputs(bot *discordgo.Session, points map[string]int64) {
 									Inline: false,
 								},
 							},
-							Timestamp: time.Now().Format(time.RFC3339),
+						},
+					},
+					Components: []discordgo.MessageComponent{
+						discordgo.ActionsRow{
+							Components: []discordgo.MessageComponent{
+								discordgo.Button{
+									Style:    discordgo.SuccessButton,
+									CustomID: "vote_yes",
+									Emoji: &discordgo.ComponentEmoji{
+										Name: "\U0001F44D",
+									},
+								},
+								discordgo.Button{
+									Style:    discordgo.DangerButton,
+									CustomID: "vote_no",
+									Emoji: &discordgo.ComponentEmoji{
+										Name: "\U0001F44E",
+									},
+								},
+							},
 						},
 					},
 				})
@@ -254,32 +204,28 @@ func handleInputs(bot *discordgo.Session, points map[string]int64) {
 					log.Printf("Failed to create thread: %v", err)
 				}
 
-				s.MessageReactionAdd(i.ChannelID, pollMsg.ID, "%F0%9F%91%8D")
-				s.MessageReactionAdd(i.ChannelID, pollMsg.ID, "%F0%9F%91%8E")
-
-				poll := &VotePoll{
-					MessageID: pollMsg.ID,
-					ChannelID: i.ChannelID,
-					UserID:    user.ID,
-					CreatorID: i.Member.User.ID,
+				poll := &data.Poll{
+					MessageId: pollMsg.ID,
+					ChannelId: i.ChannelID,
+					CreatorId: i.Member.User.ID,
 					Points:    number,
 					Reason:    reason,
-					ExpiresAt: time.Now().Add(POLL_LENGTH),
+					GainerIds: []string{user.ID},
+					Expiry:    time.Now().Add(POLL_LENGTH).Format(time.RFC3339),
 				}
 
-				pollsMutex.Lock()
-				activePolls[pollMsg.ID] = poll
-				savePolls(activePolls)
-				pollsMutex.Unlock()
-
-				time.AfterFunc(POLL_LENGTH, func() {
-					concludePoll(s, poll, points)
-				})
+				data.CreatePoll(*poll)
 			case "leaderboard":
+				var year string
+				if len(options) > 0 {
+					year = options[0].StringValue()
+				} else {
+					year = strconv.Itoa(time.Now().Year())
+				}
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
-						Embeds: []*discordgo.MessageEmbed{create_leaderboard(points, s)},
+						Embeds: []*discordgo.MessageEmbed{create_leaderboard(year)},
 					},
 				})
 			case "version":
@@ -376,7 +322,7 @@ func handleInputs(bot *discordgo.Session, points map[string]int64) {
 					}
 
 					// Skip directories and binary files
-					if info.IsDir() || strings.HasPrefix(path, "foulbot-") {
+					if info.IsDir() || strings.HasPrefix(path, "foulbot-") || strings.HasPrefix(path, ".foulbot-") {
 						return nil
 					}
 
@@ -445,115 +391,48 @@ func handleInputs(bot *discordgo.Session, points map[string]int64) {
 			}
 		}
 	})
-}
 
-func concludePoll(s *discordgo.Session, poll *VotePoll, points map[string]int64) {
-	pollsMutex.Lock()
-	delete(activePolls, poll.MessageID)
-	savePolls(activePolls)
-	pollsMutex.Unlock()
-
-	upVotes, _ := s.MessageReactions(poll.ChannelID, poll.MessageID, "%F0%9F%91%8D", 100, "", "")
-	downVotes, _ := s.MessageReactions(poll.ChannelID, poll.MessageID, "%F0%9F%91%8E", 100, "", "")
-
-	result := "Failed"
-	if len(upVotes) > len(downVotes) {
-		points[poll.UserID] += poll.Points
-		savePoints(points)
-		result = "Passed"
-	}
-
-	messageLink := fmt.Sprintf("https://discord.com/channels/%s/%s/%s", s.State.Guilds[0].ID, poll.ChannelID, poll.MessageID)
-
-	embed := &discordgo.MessageEmbed{
-		Title: "Poll Result",
-		Color: 0x57F287,
-		Fields: []*discordgo.MessageEmbedField{
-			{
-				Name:   "Creator",
-				Value:  fmt.Sprintf("<@%s>", poll.CreatorID),
-				Inline: true,
-			},
-			{
-				Name:   "Gainer",
-				Value:  fmt.Sprintf("<@%s>", poll.UserID),
-				Inline: true,
-			},
-			{
-				Name:   "Points",
-				Value:  fmt.Sprintf("%+d", poll.Points),
-				Inline: true,
-			},
-			{
-				Name:   "Reason",
-				Value:  fmt.Sprintf("[%s](%s)", poll.Reason, messageLink),
-				Inline: false,
-			},
-			{
-				Name:   "Result",
-				Value:  result,
-				Inline: false,
-			},
-		},
-		Timestamp: time.Now().Format(time.RFC3339),
-	}
-
-	if result == "Failed" {
-		embed.Color = 0xED4245 // Red color for failed
-	}
-
-	s.ChannelMessageSendEmbed(poll.ChannelID, embed)
-}
-
-func savePoints(points map[string]int64) {
-	data, err := json.MarshalIndent(points, "", "    ")
-	if err != nil {
-		log.Fatalf("could not marshal points: %s", err)
-	}
-	if err := os.WriteFile(POINTS_JSON, data, 0644); err != nil {
-		log.Fatalf("could not write points file: %s", err)
-	}
-}
-
-func create_leaderboard(points map[string]int64, s *discordgo.Session) *discordgo.MessageEmbed {
-	pairs := make([]userPoints, 0, len(points))
-	for id, score := range points {
-		pairs = append(pairs, userPoints{id, score})
-	}
-	sort.Slice(pairs, func(i, j int) bool {
-		return pairs[i].points > pairs[j].points
-	})
-	if len(pairs) > len(NUMBERS) {
-		pairs = pairs[:len(NUMBERS)]
-	}
-	return create_leaderboard_string(pairs, s)
-}
-
-func create_leaderboard_string(pairs []userPoints, s *discordgo.Session) *discordgo.MessageEmbed {
-	description := ""
-	for i, pair := range pairs {
-		user, err := s.User(pair.userID)
-		if err != nil {
-			log.Fatal(err)
-			continue
+	// Add button handler
+	bot.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		if i.Type == discordgo.InteractionMessageComponent {
+			// Handle button interactions
+			switch i.MessageComponentData().CustomID {
+			case "vote_yes":
+				data.Vote(i.ChannelID, i.Message.ID, i.Member.User.ID, true)
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "Vote recorded: 👍",
+						Flags:   discordgo.MessageFlagsEphemeral,
+					},
+				})
+			case "vote_no":
+				data.Vote(i.ChannelID, i.Message.ID, i.Member.User.ID, false)
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "Vote recorded: 👎",
+						Flags:   discordgo.MessageFlagsEphemeral,
+					},
+				})
+			}
 		}
-		description += fmt.Sprintf("%s %s: %d\n", NUMBERS[i], user.Username, pair.points)
+	})
+}
+
+func create_leaderboard(year string) *discordgo.MessageEmbed {
+	leaderboard := data.Leaderboard(year)
+	description := ""
+	for i, position := range leaderboard {
+		if i >= len(NUMBERS) {
+			break
+		}
+		description += fmt.Sprintf("%s <@%s>: %d\n", NUMBERS[i], position.UserId, position.Points)
 	}
 	return &discordgo.MessageEmbed{
 		Title:       "Leaderboard",
 		Description: description,
 	}
-}
-
-func handlePollsMutex(bot *discordgo.Session) {
-	bot.AddHandler(func(s *discordgo.Session, r *discordgo.MessageReactionAdd) {
-		pollsMutex.RLock()
-		_, exists := activePolls[r.MessageID]
-		pollsMutex.RUnlock()
-		if !exists || r.UserID == s.State.User.ID {
-			return
-		}
-	})
 }
 
 func establishCommands(bot *discordgo.Session, guildId string, appId string) {
@@ -585,7 +464,14 @@ func establishCommands(bot *discordgo.Session, guildId string, appId string) {
 		{
 			Name:        "leaderboard",
 			Description: fmt.Sprintf("Displays a top %d leaderboard", len(NUMBERS)),
-			Options:     []*discordgo.ApplicationCommandOption{},
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "year",
+					Description: "Year to show leaderboard for (defaults to current year)",
+					Required:    false,
+				},
+			},
 		},
 		{
 			Name:        "version",

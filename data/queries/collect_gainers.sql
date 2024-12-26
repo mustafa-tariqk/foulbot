@@ -1,0 +1,1 @@
+SELECT user_id FROM gainers WHERE channel_id = ? AND message_id = ?;
