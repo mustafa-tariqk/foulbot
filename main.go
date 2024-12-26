@@ -177,6 +177,28 @@ func handleInputs(bot *discordgo.Session) {
 							Timestamp: time.Now().Format(time.RFC3339),
 						},
 					},
+					Components: []discordgo.MessageComponent{
+						discordgo.ActionsRow{
+							Components: []discordgo.MessageComponent{
+								discordgo.Button{
+									Label:    "Approve",
+									Style:    discordgo.SuccessButton,
+									CustomID: "vote_yes",
+									Emoji: &discordgo.ComponentEmoji{
+										Name: "👍",
+									},
+								},
+								discordgo.Button{
+									Label:    "Reject",
+									Style:    discordgo.DangerButton,
+									CustomID: "vote_no",
+									Emoji: &discordgo.ComponentEmoji{
+										Name: "👎",
+									},
+								},
+							},
+						},
+					},
 				})
 				if err != nil {
 					return
@@ -190,9 +212,6 @@ func handleInputs(bot *discordgo.Session) {
 				if err != nil {
 					log.Printf("Failed to create thread: %v", err)
 				}
-
-				s.MessageReactionAdd(i.ChannelID, pollMsg.ID, "%F0%9F%91%8D")
-				s.MessageReactionAdd(i.ChannelID, pollMsg.ID, "%F0%9F%91%8E")
 
 				poll := &data.Poll{
 					MessageId:  pollMsg.ID,
@@ -209,7 +228,7 @@ func handleInputs(bot *discordgo.Session) {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
-						Embeds: []*discordgo.MessageEmbed{create_leaderboard(s)},
+						Embeds: []*discordgo.MessageEmbed{create_leaderboard()},
 					},
 				})
 			case "version":
@@ -375,9 +394,37 @@ func handleInputs(bot *discordgo.Session) {
 			}
 		}
 	})
+
+	// Add button handler
+	bot.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		if i.Type == discordgo.InteractionMessageComponent {
+			// Handle button interactions
+			switch i.MessageComponentData().CustomID {
+			case "vote_yes":
+				data.Vote(i.ChannelID, i.Message.ID, i.Member.User.ID, true)
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "Vote recorded: 👍",
+						Flags:   discordgo.MessageFlagsEphemeral,
+					},
+				})
+			case "vote_no":
+				data.Vote(i.ChannelID, i.Message.ID, i.Member.User.ID, false)
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "Vote recorded: 👎",
+						Flags:   discordgo.MessageFlagsEphemeral,
+					},
+				})
+			}
+		}
+		// ...existing interaction handlers...
+	})
 }
 
-func create_leaderboard(s *discordgo.Session) *discordgo.MessageEmbed {
+func create_leaderboard() *discordgo.MessageEmbed {
 	var year string = strconv.Itoa(time.Now().Year())
 	leaderboard := data.Leaderboard(year)
 	description := ""

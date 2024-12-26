@@ -1,5 +1,5 @@
 SELECT
-    *
+    user_id
 FROM
     votes
 WHERE
