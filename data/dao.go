@@ -1,4 +1,4 @@
-package dao
+package data
 
 import (
 	"database/sql"
@@ -7,28 +7,28 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-//go:embed make_tables.sql
+//go:embed queries/make_tables.sql
 var makeTablesQuery string
 
-//go:embed insert_poll.sql
+//go:embed queries/insert_poll.sql
 var insertPollQuery string
 
-//go:embed insert_gainers.sql
+//go:embed queries/insert_gainers.sql
 var insertGainersQuery string
 
-//go:embed vote.sql
+//go:embed queries/vote.sql
 var voteQuery string
 
-//go:embed leaderboard.sql
+//go:embed queries/leaderboard.sql
 var leaderboardQuery string
 
-//go:embed expired_rows.sql
+//go:embed queries/expired_rows.sql
 var expiredRowsQuery string
 
-//go:embed collect_votes.sql
+//go:embed queries/collect_votes.sql
 var collectVotesQuery string
 
-//go:embed finalize_poll.sql
+//go:embed queries/finalize_poll.sql
 var finalizePollQuery string
 
 var db *sql.DB
