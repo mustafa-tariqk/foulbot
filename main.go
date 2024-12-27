@@ -148,6 +148,13 @@ func handleExpiredPolls(bot *discordgo.Session) {
 	}()
 }
 
+func truncateString(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen-3] + "..."
+}
+
 func handleInputs(bot *discordgo.Session) {
 	bot.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		if i.Type == discordgo.InteractionApplicationCommand {
@@ -226,7 +233,7 @@ func handleInputs(bot *discordgo.Session) {
 				}
 
 				_, err = s.MessageThreadStartComplex(pollMsg.ChannelID, pollMsg.ID, &discordgo.ThreadStart{
-					Name:                reason,
+					Name:                truncateString(reason, 100),
 					AutoArchiveDuration: 60,
 				})
 
