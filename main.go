@@ -35,8 +35,11 @@ type Config struct {
 	DiscordAppID   string `json:"discord_application_id"`
 }
 
+var AppId string
+
 func main() {
 	bot, guildId, appId := loadEnv()
+	AppId = appId
 
 	handleInputs(bot)
 
@@ -128,7 +131,6 @@ func handleExpiredPolls(bot *discordgo.Session) {
 						},
 					},
 				}
-
 				if !poll.Passed {
 					embed.Color = 0xc94543 // Red for failed
 				}
@@ -519,4 +521,22 @@ func establishCommands(bot *discordgo.Session, guildId string, appId string) {
 
 func run_migrations() {
 	// No migrations yet
+	// if points.json exists as a file, read it as map[string]int64 and run dao.Migrate(points, appId)
+
+	_, err := os.Stat("points.json")
+	if err == nil {
+		points := make(map[string]int64)
+		contents, err := os.ReadFile("points.json")
+		if err != nil {
+			log.Fatalf("could not read polls file: %s", err)
+		}
+		err = json.Unmarshal(contents, &points)
+		if err != nil {
+			log.Fatalf("could not parse polls file: %s", err)
+		}
+		data.Migrate(points, AppId)
+		// delete points.json
+		os.Remove("points.json")
+	}
+
 }

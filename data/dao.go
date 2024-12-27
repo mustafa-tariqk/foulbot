@@ -199,3 +199,22 @@ func Leaderboard(year string) (podium []Position) {
 	}
 	return podium
 }
+
+func Migrate(points map[string]int64, appId string) {
+	for k, v := range points {
+		_, err = db.Exec("INSERT INTO POLLS (channel_id, message_id, creator_id, points, reason, expiry, passed) VALUES (?, ?, ?, ?, ?, ?, 1)", k, k, appId, v, "Migrated from old system", "2024-01-01 00:00:00")
+		if err != nil {
+			panic(err)
+		}
+
+		_, err = db.Exec("INSERT INTO GAINERS (channel_id, message_id, user_id) VALUES (?, ?, ?)", k, k, k)
+		if err != nil {
+			panic(err)
+		}
+
+		_, err = db.Exec("INSERT INTO VOTES (channel_id, message_id, user_id, value) VALUES (?, ?, ?, 1)", k, k, appId)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
