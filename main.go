@@ -24,7 +24,7 @@ import (
 var (
 	VERSION     string
 	CONFIG_JSON = "config.json"
-	POLL_LENGTH = 24 * time.Hour
+	POLL_LENGTH = 5 * time.Second
 	NUMBERS     = []string{":one:", ":two:", ":three:", ":four:", ":five:",
 		":six:", ":seven:", ":eight:", ":nine:", ":keycap_ten:"}
 )
@@ -136,6 +136,13 @@ func handleExpiredPolls(bot *discordgo.Session) {
 				}
 
 				bot.ChannelMessageSendEmbed(poll.ChannelId, embed)
+
+				bot.ChannelMessageEditComplex(&discordgo.MessageEdit{
+					ID:         poll.MessageId,
+					Channel:    poll.ChannelId,
+					Components: &[]discordgo.MessageComponent{},
+				})
+
 			}
 		}
 	}()
