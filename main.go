@@ -527,23 +527,25 @@ func establishCommands(bot *discordgo.Session, guildId string, appId string) {
 }
 
 func run_migrations() {
-	// No migrations yet
-	// if points.json exists as a file, read it as map[string]int64 and run dao.Migrate(points, appId)
-
-	_, err := os.Stat("points.json")
-	if err == nil {
-		points := make(map[string]int64)
-		contents, err := os.ReadFile("points.json")
-		if err != nil {
-			log.Fatalf("could not read polls file: %s", err)
-		}
-		err = json.Unmarshal(contents, &points)
-		if err != nil {
-			log.Fatalf("could not parse polls file: %s", err)
-		}
-		data.Migrate(points, AppId)
-		// delete points.json
-		os.Remove("points.json")
+	// Check if points.json exists
+	if _, err := os.Stat("points.json"); os.IsNotExist(err) {
+		return // Skip migration if file doesn't exist
 	}
 
+	// Read and process points.json
+	contents, err := os.ReadFile("points.json")
+	if err != nil {
+		log.Printf("could not read points.json: %s", err)
+		return
+	}
+
+	points := make(map[string]int64)
+	if err := json.Unmarshal(contents, &points); err != nil {
+		log.Printf("could not parse points.json: %s", err)
+		return
+	}
+
+	// Migrate data and cleanup
+	data.Migrate(points, AppId)
+	os.Remove("points.json")
 }
