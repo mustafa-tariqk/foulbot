@@ -24,7 +24,7 @@ import (
 var (
 	VERSION     string
 	CONFIG_JSON = "config.json"
-	POLL_LENGTH = 5 * time.Second
+	POLL_LENGTH = 24 * time.Hour
 	NUMBERS     = []string{":one:", ":two:", ":three:", ":four:", ":five:",
 		":six:", ":seven:", ":eight:", ":nine:", ":keycap_ten:"}
 )
