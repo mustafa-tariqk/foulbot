@@ -184,6 +184,8 @@ func handleInputs(bot *discordgo.Session) {
 					},
 				})
 
+				expiry := time.Now().Add(POLL_LENGTH).Format(time.RFC3339)
+
 				pollMsg, err := s.ChannelMessageSendComplex(i.ChannelID, &discordgo.MessageSend{
 					Embeds: []*discordgo.MessageEmbed{
 						{
@@ -205,6 +207,7 @@ func handleInputs(bot *discordgo.Session) {
 									Inline: false,
 								},
 							},
+							Timestamp: expiry,
 						},
 					},
 					Components: []discordgo.MessageComponent{
@@ -248,7 +251,7 @@ func handleInputs(bot *discordgo.Session) {
 					Points:    number,
 					Reason:    reason,
 					GainerIds: []string{user.ID},
-					Expiry:    time.Now().Add(POLL_LENGTH).Format(time.RFC3339),
+					Expiry:    expiry,
 				}
 
 				data.CreatePoll(*poll)
