@@ -1,7 +1,7 @@
 VERSION ?= $(shell git describe --tags --abbrev=0 2>/dev/null)
-NOTES ?= $(VERSION)
+NEXT_VERSION := $(shell git describe --tags --abbrev=0 2>/dev/null | sed 's/v//' | xargs -I {} expr {} + 1)
 BINARY_NAME=foulbot
-.PHONY: all tidy build
+.PHONY: build run clean release
 
 build:
 	go mod tidy
@@ -23,15 +23,16 @@ clean:
 	rm -f $(BINARY_NAME)-*
 
 release: build
-	@echo "Creating release $(VERSION)..."
-	@gh release delete $(shell gh release list | awk 'NR==2{print $$1}') --yes || true
-	@gh release create $(VERSION) \
+	@git tag $(NEXT_VERSION)
+	@git push --tags
+	@gh release create $(NEXT_VERSION) \
+		--title $(NEXT_VERSION) \
+		--notes "" \
 		$(BINARY_NAME)-linux-amd64 \
 		$(BINARY_NAME)-darwin-amd64 \
 		$(BINARY_NAME)-windows-amd64.exe \
 		$(BINARY_NAME)-linux-arm64 \
 		$(BINARY_NAME)-darwin-arm64 \
 		$(BINARY_NAME)-windows-arm64.exe \
-		--title "Release $(VERSION)" \
-		--notes "$(NOTES)" \
 		--draft=false
+	@gh release delete $(VERSION)
