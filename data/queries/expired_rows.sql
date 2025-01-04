@@ -9,4 +9,4 @@ FROM
     polls
 WHERE
     passed is NULL
-    AND EXPIRY < datetime ('now');
+    AND EXPIRY < strftime ('%Y-%m-%dT%H:%M:%S-0500', 'now', 'localtime');
