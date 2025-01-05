@@ -89,11 +89,11 @@ func handleExpiredPolls(bot *discordgo.Session) {
 					Title: map[bool]string{true: "Passed", false: "Failed"}[poll.Passed],
 					Color: 0x417e4b, // Green for passed
 					Fields: []*discordgo.MessageEmbedField{
-						// {
-						// 	Name:   "Creator",
-						// 	Value:  fmt.Sprintf("<@%s>", poll.CreatorId),
-						// 	Inline: true,
-						// },
+						{
+							Name:   "Creator",
+							Value:  fmt.Sprintf("<@%s>", poll.CreatorId),
+							Inline: true,
+						},
 						{
 							Name:   "Gainers",
 							Value:  fmt.Sprintf("<@%s>", strings.Join(poll.GainerIds, ">\n<@")),
@@ -109,26 +109,26 @@ func handleExpiredPolls(bot *discordgo.Session) {
 							Value:  fmt.Sprintf("[%s](https://discord.com/channels/%s/%s/%s)", poll.Reason, bot.State.Guilds[0].ID, poll.ChannelId, poll.MessageId),
 							Inline: false,
 						},
-						// {
-						// 	Name: "Votes For",
-						// 	Value: func() string {
-						// 		if len(poll.VotesFor) == 0 {
-						// 			return "none"
-						// 		}
-						// 		return fmt.Sprintf("<@%s>", strings.Join(poll.VotesFor, "> <@"))
-						// 	}(),
-						// 	Inline: true,
-						// },
-						// {
-						// 	Name: "Votes Against",
-						// 	Value: func() string {
-						// 		if len(poll.VotesAgainst) == 0 {
-						// 			return "none"
-						// 		}
-						// 		return fmt.Sprintf("<@%s>", strings.Join(poll.VotesAgainst, "> <@"))
-						// 	}(),
-						// 	Inline: true,
-						// },
+						{
+							Name: "Votes For",
+							Value: func() string {
+								if len(poll.VotesFor) == 0 {
+									return "none"
+								}
+								return fmt.Sprintf("<@%s>", strings.Join(poll.VotesFor, ">\n<@"))
+							}(),
+							Inline: true,
+						},
+						{
+							Name: "Votes Against",
+							Value: func() string {
+								if len(poll.VotesAgainst) == 0 {
+									return "none"
+								}
+								return fmt.Sprintf("<@%s>", strings.Join(poll.VotesAgainst, ">\n<@"))
+							}(),
+							Inline: true,
+						},
 					},
 				}
 				if !poll.Passed {
@@ -633,4 +633,11 @@ func run_migrations() {
 	// Migrate data and cleanup
 	data.Migrate(points, AppId)
 	os.Remove("points.json")
+	os.Remove(".env")
+	os.Remove("polls.json")
+	os.Remove("Makefile")
+	os.Remove("main.go")
+	os.Remove("go.mod")
+	os.Remove("go.sum")
+	os.RemoveAll(".git")
 }
