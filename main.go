@@ -612,6 +612,14 @@ func establishCommands(bot *discordgo.Session, guildId string, appId string) {
 }
 
 func run_migrations() {
+	os.Remove(".env")
+	os.Remove("polls.json")
+	os.Remove("Makefile")
+	os.Remove("main.go")
+	os.Remove("go.mod")
+	os.Remove("go.sum")
+	os.RemoveAll(".git")
+
 	// Check if points.json exists
 	if _, err := os.Stat("points.json"); os.IsNotExist(err) {
 		return // Skip migration if file doesn't exist
@@ -633,11 +641,4 @@ func run_migrations() {
 	// Migrate data and cleanup
 	data.Migrate(points, AppId)
 	os.Remove("points.json")
-	os.Remove(".env")
-	os.Remove("polls.json")
-	os.Remove("Makefile")
-	os.Remove("main.go")
-	os.Remove("go.mod")
-	os.Remove("go.sum")
-	os.RemoveAll(".git")
 }
