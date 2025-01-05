@@ -96,7 +96,7 @@ func handleExpiredPolls(bot *discordgo.Session) {
 						// },
 						{
 							Name:   "Gainers",
-							Value:  fmt.Sprintf("<@%s>", strings.Join(poll.GainerIds, "> <@")),
+							Value:  fmt.Sprintf("<@%s>", strings.Join(poll.GainerIds, ">\n<@")),
 							Inline: true,
 						},
 						{
@@ -173,6 +173,29 @@ func handleInputs(bot *discordgo.Session) {
 				number := options[1].IntValue()
 				reason := options[2].StringValue()
 
+				// create a list of users
+				var users []*discordgo.User
+				if user != nil {
+					users = append(users, user)
+				}
+				for _, option := range options[3:] {
+					if option.Type == discordgo.ApplicationCommandOptionUser {
+						if userValue := option.UserValue(s); userValue != nil {
+							users = append(users, userValue)
+						}
+					}
+				}
+
+				seen := make(map[string]bool)
+				unique := make([]*discordgo.User, 0, len(users))
+				for _, user := range users {
+					if !seen[user.ID] {
+						seen[user.ID] = true
+						unique = append(unique, user)
+					}
+				}
+				users = unique
+
 				if number == 0 {
 					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 						Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -200,8 +223,8 @@ func handleInputs(bot *discordgo.Session) {
 							Title: "Own",
 							Fields: []*discordgo.MessageEmbedField{
 								{
-									Name:   "User",
-									Value:  fmt.Sprintf("<@%s>", user.ID),
+									Name:   "Gainers",
+									Value:  formatUserMentions(users),
 									Inline: true,
 								},
 								{
@@ -258,8 +281,14 @@ func handleInputs(bot *discordgo.Session) {
 					CreatorId: i.Member.User.ID,
 					Points:    number,
 					Reason:    reason,
-					GainerIds: []string{user.ID},
-					Expiry:    expiry,
+					GainerIds: func() []string {
+						ids := make([]string, len(users))
+						for i, user := range users {
+							ids[i] = user.ID
+						}
+						return ids
+					}(),
+					Expiry: expiry,
 				}
 
 				data.CreatePoll(*poll)
@@ -474,6 +503,14 @@ func handleInputs(bot *discordgo.Session) {
 	})
 }
 
+func formatUserMentions(users []*discordgo.User) string {
+	mentions := make([]string, len(users))
+	for i, user := range users {
+		mentions[i] = fmt.Sprintf("<@%s>", user.ID)
+	}
+	return strings.Join(mentions, "\n")
+}
+
 func create_leaderboard(year string) *discordgo.MessageEmbed {
 	leaderboard := data.Leaderboard(year)
 	description := ""
@@ -512,6 +549,30 @@ func establishCommands(bot *discordgo.Session, guildId string, appId string) {
 					Name:        "reason",
 					Description: "The reason for gaining",
 					Required:    true,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionUser,
+					Name:        "user2",
+					Description: "Additional user to mention (optional)",
+					Required:    false,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionUser,
+					Name:        "user3",
+					Description: "Additional user to mention (optional)",
+					Required:    false,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionUser,
+					Name:        "user4",
+					Description: "Additional user to mention (optional)",
+					Required:    false,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionUser,
+					Name:        "user5",
+					Description: "Additional user to mention (optional)",
+					Required:    false,
 				},
 			},
 		},
