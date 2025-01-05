@@ -24,7 +24,7 @@ import (
 var (
 	VERSION     string
 	CONFIG_JSON = "config.json"
-	POLL_LENGTH = 24 * time.Hour
+	POLL_LENGTH = 5 * time.Second
 	NUMBERS     = []string{":one:", ":two:", ":three:", ":four:", ":five:",
 		":six:", ":seven:", ":eight:", ":nine:", ":keycap_ten:"}
 )
@@ -135,7 +135,15 @@ func handleExpiredPolls(bot *discordgo.Session) {
 					embed.Color = 0xc94543 // Red for failed
 				}
 
-				bot.ChannelMessageSendEmbed(poll.ChannelId, embed)
+				message, err := bot.ChannelMessageSendEmbed(poll.ChannelId, embed)
+				if err != nil {
+					log.Printf("Failed to send poll result: %v", err)
+				}
+
+				bot.MessageThreadStartComplex(message.ChannelID, message.ID, &discordgo.ThreadStart{
+					Name:                "Result",
+					AutoArchiveDuration: 60,
+				})
 
 				bot.ChannelMessageEditComplex(&discordgo.MessageEdit{
 					ID:         poll.MessageId,
@@ -265,9 +273,15 @@ func handleInputs(bot *discordgo.Session) {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
-						Embeds: []*discordgo.MessageEmbed{create_leaderboard(year)},
+						Content: "Making leaderboard...",
+						Flags:   discordgo.MessageFlagsEphemeral,
 					},
 				})
+				msg, err := s.ChannelMessageSendEmbed(i.ChannelID, create_leaderboard(year))
+				if err != nil {
+					log.Printf("Failed to send leaderboard: %v", err)
+				}
+				s.MessageThreadStart(i.ChannelID, msg.ID, "Leaderboard", 60)
 			case "version":
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
