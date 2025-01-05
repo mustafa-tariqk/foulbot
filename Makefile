@@ -35,4 +35,4 @@ release: build
 		$(BINARY_NAME)-darwin-arm64 \
 		$(BINARY_NAME)-windows-arm64.exe \
 		--draft=false
-	@gh release delete $(VERSION)
+	@gh release delete -y $(VERSION)
