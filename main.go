@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"foulbot/data"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"os/exec"
@@ -24,7 +25,7 @@ import (
 var (
 	VERSION     string
 	CONFIG_JSON = "config.json"
-	POLL_LENGTH = 24 * time.Hour
+	POLL_LENGTH = 10 * time.Second
 	NUMBERS     = []string{":one:", ":two:", ":three:", ":four:", ":five:",
 		":six:", ":seven:", ":eight:", ":nine:", ":keycap_ten:"}
 )
@@ -85,31 +86,32 @@ func handleExpiredPolls(bot *discordgo.Session) {
 		for range ticker.C {
 			evaluatedPolls := data.EvaluatePolls()
 			for _, poll := range evaluatedPolls {
-				embed := &discordgo.MessageEmbed{
-					Title: map[bool]string{true: "Passed", false: "Failed"}[poll.Passed],
-					Color: 0x417e4b, // Green for passed
-					Fields: []*discordgo.MessageEmbedField{
-						{
-							Name:   "Creator",
-							Value:  fmt.Sprintf("<@%s>", poll.CreatorId),
-							Inline: true,
-						},
-						{
-							Name:   "Gainers",
-							Value:  fmt.Sprintf("<@%s>", strings.Join(poll.GainerIds, ">\n<@")),
-							Inline: true,
-						},
-						{
-							Name:   "Points",
-							Value:  fmt.Sprintf("%+d", poll.Points),
-							Inline: true,
-						},
-						{
-							Name:   "Reason",
-							Value:  fmt.Sprintf("[%s](https://discord.com/channels/%s/%s/%s)", poll.Reason, bot.State.Guilds[0].ID, poll.ChannelId, poll.MessageId),
-							Inline: false,
-						},
-						{
+				fields := []*discordgo.MessageEmbedField{
+					{
+						Name:   "Creator",
+						Value:  fmt.Sprintf("<@%s>", poll.CreatorId),
+						Inline: true,
+					},
+					{
+						Name:   "Gainers",
+						Value:  fmt.Sprintf("<@%s>", strings.Join(poll.GainerIds, ">\n<@")),
+						Inline: true,
+					},
+					{
+						Name:   "Points",
+						Value:  fmt.Sprintf("%+d", poll.Points),
+						Inline: true,
+					},
+					{
+						Name:   "Reason",
+						Value:  fmt.Sprintf("[%s](https://discord.com/channels/%s/%s/%s)", poll.Reason, bot.State.Guilds[0].ID, poll.ChannelId, poll.MessageId),
+						Inline: false,
+					},
+				}
+
+				if shouldShowVotes() {
+					fields = append(fields,
+						&discordgo.MessageEmbedField{
 							Name: "Votes For",
 							Value: func() string {
 								if len(poll.VotesFor) == 0 {
@@ -119,7 +121,7 @@ func handleExpiredPolls(bot *discordgo.Session) {
 							}(),
 							Inline: true,
 						},
-						{
+						&discordgo.MessageEmbedField{
 							Name: "Votes Against",
 							Value: func() string {
 								if len(poll.VotesAgainst) == 0 {
@@ -129,7 +131,13 @@ func handleExpiredPolls(bot *discordgo.Session) {
 							}(),
 							Inline: true,
 						},
-					},
+					)
+				}
+
+				embed := &discordgo.MessageEmbed{
+					Title:  map[bool]string{true: "Passed", false: "Failed"}[poll.Passed],
+					Color:  0x417e4b, // Green for passed
+					Fields: fields,
 				}
 				if !poll.Passed {
 					embed.Color = 0xc94543 // Red for failed
@@ -612,5 +620,8 @@ func establishCommands(bot *discordgo.Session, guildId string, appId string) {
 }
 
 func run_migrations() {
-	os.Remove("README.md")
+}
+
+func shouldShowVotes() bool {
+	return rand.Float32() < 0.5
 }
