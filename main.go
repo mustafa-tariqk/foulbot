@@ -274,13 +274,9 @@ func handleInputs(bot *discordgo.Session) {
 					return
 				}
 
-				_, err = s.MessageThreadStartComplex(pollMsg.ChannelID, pollMsg.ID, &discordgo.ThreadStart{
-					Name:                truncateString(reason, 100),
-					AutoArchiveDuration: 60,
-				})
-
+				err = createThreadWithTags(s, pollMsg.ChannelID, pollMsg.ID, reason, users)
 				if err != nil {
-					log.Printf("Failed to create thread: %v", err)
+					log.Printf("Thread creation failed: %v", err)
 				}
 
 				poll := &data.Poll{
@@ -624,4 +620,24 @@ func run_migrations() {
 
 func shouldShowVotes() bool {
 	return rand.Float32() < 0.5
+}
+
+// Add new helper function
+func createThreadWithTags(s *discordgo.Session, channelID string, messageID string, reason string, users []*discordgo.User) error {
+    thread, err := s.MessageThreadStartComplex(channelID, messageID, &discordgo.ThreadStart{
+        Name:                truncateString(reason, 100),
+        AutoArchiveDuration: 60,
+    })
+    if err != nil {
+        return fmt.Errorf("failed to create thread: %v", err)
+    }
+
+    // Create initial message tagging users
+    mentions := formatUserMentions(users)
+    _, err = s.ChannelMessageSend(thread.ID, mentions)
+    if err != nil {
+        return fmt.Errorf("failed to send initial thread message: %v", err)
+    }
+
+    return nil
 }
