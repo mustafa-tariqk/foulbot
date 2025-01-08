@@ -25,7 +25,7 @@ import (
 var (
 	VERSION     string
 	CONFIG_JSON = "config.json"
-	POLL_LENGTH = 10 * time.Second
+	POLL_LENGTH = 24 * time.Hour
 	NUMBERS     = []string{":one:", ":two:", ":three:", ":four:", ":five:",
 		":six:", ":seven:", ":eight:", ":nine:", ":keycap_ten:"}
 )
@@ -624,20 +624,20 @@ func shouldShowVotes() bool {
 
 // Add new helper function
 func createThreadWithTags(s *discordgo.Session, channelID string, messageID string, reason string, users []*discordgo.User) error {
-    thread, err := s.MessageThreadStartComplex(channelID, messageID, &discordgo.ThreadStart{
-        Name:                truncateString(reason, 100),
-        AutoArchiveDuration: 60,
-    })
-    if err != nil {
-        return fmt.Errorf("failed to create thread: %v", err)
-    }
+	thread, err := s.MessageThreadStartComplex(channelID, messageID, &discordgo.ThreadStart{
+		Name:                truncateString(reason, 100),
+		AutoArchiveDuration: 60,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create thread: %v", err)
+	}
 
-    // Create initial message tagging users
-    mentions := formatUserMentions(users)
-    _, err = s.ChannelMessageSend(thread.ID, mentions)
-    if err != nil {
-        return fmt.Errorf("failed to send initial thread message: %v", err)
-    }
+	// Create initial message tagging users
+	mentions := formatUserMentions(users)
+	_, err = s.ChannelMessageSend(thread.ID, mentions)
+	if err != nil {
+		return fmt.Errorf("failed to send initial thread message: %v", err)
+	}
 
-    return nil
+	return nil
 }
