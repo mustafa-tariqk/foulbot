@@ -171,12 +171,30 @@ func truncateString(s string, maxLen int) string {
 	return s[:maxLen-3] + "..."
 }
 
+var lastPollTime = make(map[string]time.Time)
+
 func handleInputs(bot *discordgo.Session) {
 	bot.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		if i.Type == discordgo.InteractionApplicationCommand {
 			options := i.ApplicationCommandData().Options
 			switch i.ApplicationCommandData().Name {
 			case "own":
+				userID := i.Member.User.ID
+				now := time.Now()
+
+				if lastTime, exists := lastPollTime[userID]; exists && now.Sub(lastTime) < 5*time.Minute {
+					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: "You can only create one poll every 5 minutes.",
+							Flags:   discordgo.MessageFlagsEphemeral,
+						},
+					})
+					return
+				}
+
+				lastPollTime[userID] = now
+
 				user := options[0].UserValue(s)
 				number := options[1].IntValue()
 				reason := options[2].StringValue()
