@@ -603,33 +603,33 @@ func establishCommands(bot *discordgo.Session, guildId string, appId string) {
 		// 		},
 		// 	},
 		// },
-		// {
-		// 	Name:        "leaderboard",
-		// 	Description: fmt.Sprintf("Displays a top %d leaderboard", len(NUMBERS)),
-		// 	Options: []*discordgo.ApplicationCommandOption{
-		// 		{
-		// 			Type:        discordgo.ApplicationCommandOptionString,
-		// 			Name:        "year",
-		// 			Description: "Year to show leaderboard for (defaults to current year)",
-		// 			Required:    false,
-		// 		},
-		// 	},
-		// },
-		// {
-		// 	Name:        "version",
-		// 	Description: "Displays the current version",
-		// 	Options:     []*discordgo.ApplicationCommandOption{},
-		// },
+		{
+			Name:        "leaderboard",
+			Description: fmt.Sprintf("Displays a top %d leaderboard", len(NUMBERS)),
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "year",
+					Description: "Year to show leaderboard for (defaults to current year)",
+					Required:    false,
+				},
+			},
+		},
+		{
+			Name:        "version",
+			Description: "Displays the current version",
+			Options:     []*discordgo.ApplicationCommandOption{},
+		},
 		{
 			Name:        "update",
 			Description: "Update the bot to a new version",
 			Options:     []*discordgo.ApplicationCommandOption{},
 		},
-		// {
-		// 	Name:        "logs",
-		// 	Description: "Uploads files importing for debugging",
-		// 	Options:     []*discordgo.ApplicationCommandOption{},
-		// },
+		{
+			Name:        "logs",
+			Description: "Uploads files importing for debugging",
+			Options:     []*discordgo.ApplicationCommandOption{},
+		},
 	}
 	_, err := bot.ApplicationCommandBulkOverwrite(appId, guildId, commands)
 	if err != nil {
