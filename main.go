@@ -555,81 +555,81 @@ func create_leaderboard(year string) *discordgo.MessageEmbed {
 
 func establishCommands(bot *discordgo.Session, guildId string, appId string) {
 	commands := []*discordgo.ApplicationCommand{
-		{
-			Name:        "own",
-			Description: "Accuse someone of gaining",
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionUser,
-					Name:        "user",
-					Description: "The user to mention",
-					Required:    true,
-				},
-				{
-					Type:        discordgo.ApplicationCommandOptionInteger,
-					Name:        "number",
-					Description: "An integer value",
-					Required:    true,
-				},
-				{
-					Type:        discordgo.ApplicationCommandOptionString,
-					Name:        "reason",
-					Description: "The reason for gaining",
-					Required:    true,
-				},
-				{
-					Type:        discordgo.ApplicationCommandOptionUser,
-					Name:        "user2",
-					Description: "Additional user to mention (optional)",
-					Required:    false,
-				},
-				{
-					Type:        discordgo.ApplicationCommandOptionUser,
-					Name:        "user3",
-					Description: "Additional user to mention (optional)",
-					Required:    false,
-				},
-				{
-					Type:        discordgo.ApplicationCommandOptionUser,
-					Name:        "user4",
-					Description: "Additional user to mention (optional)",
-					Required:    false,
-				},
-				{
-					Type:        discordgo.ApplicationCommandOptionUser,
-					Name:        "user5",
-					Description: "Additional user to mention (optional)",
-					Required:    false,
-				},
-			},
-		},
-		{
-			Name:        "leaderboard",
-			Description: fmt.Sprintf("Displays a top %d leaderboard", len(NUMBERS)),
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionString,
-					Name:        "year",
-					Description: "Year to show leaderboard for (defaults to current year)",
-					Required:    false,
-				},
-			},
-		},
-		{
-			Name:        "version",
-			Description: "Displays the current version",
-			Options:     []*discordgo.ApplicationCommandOption{},
-		},
+		// {
+		// 	Name:        "own",
+		// 	Description: "Accuse someone of gaining",
+		// 	Options: []*discordgo.ApplicationCommandOption{
+		// 		{
+		// 			Type:        discordgo.ApplicationCommandOptionUser,
+		// 			Name:        "user",
+		// 			Description: "The user to mention",
+		// 			Required:    true,
+		// 		},
+		// 		{
+		// 			Type:        discordgo.ApplicationCommandOptionInteger,
+		// 			Name:        "number",
+		// 			Description: "An integer value",
+		// 			Required:    true,
+		// 		},
+		// 		{
+		// 			Type:        discordgo.ApplicationCommandOptionString,
+		// 			Name:        "reason",
+		// 			Description: "The reason for gaining",
+		// 			Required:    true,
+		// 		},
+		// 		{
+		// 			Type:        discordgo.ApplicationCommandOptionUser,
+		// 			Name:        "user2",
+		// 			Description: "Additional user to mention (optional)",
+		// 			Required:    false,
+		// 		},
+		// 		{
+		// 			Type:        discordgo.ApplicationCommandOptionUser,
+		// 			Name:        "user3",
+		// 			Description: "Additional user to mention (optional)",
+		// 			Required:    false,
+		// 		},
+		// 		{
+		// 			Type:        discordgo.ApplicationCommandOptionUser,
+		// 			Name:        "user4",
+		// 			Description: "Additional user to mention (optional)",
+		// 			Required:    false,
+		// 		},
+		// 		{
+		// 			Type:        discordgo.ApplicationCommandOptionUser,
+		// 			Name:        "user5",
+		// 			Description: "Additional user to mention (optional)",
+		// 			Required:    false,
+		// 		},
+		// 	},
+		// },
+		// {
+		// 	Name:        "leaderboard",
+		// 	Description: fmt.Sprintf("Displays a top %d leaderboard", len(NUMBERS)),
+		// 	Options: []*discordgo.ApplicationCommandOption{
+		// 		{
+		// 			Type:        discordgo.ApplicationCommandOptionString,
+		// 			Name:        "year",
+		// 			Description: "Year to show leaderboard for (defaults to current year)",
+		// 			Required:    false,
+		// 		},
+		// 	},
+		// },
+		// {
+		// 	Name:        "version",
+		// 	Description: "Displays the current version",
+		// 	Options:     []*discordgo.ApplicationCommandOption{},
+		// },
 		{
 			Name:        "update",
 			Description: "Update the bot to a new version",
 			Options:     []*discordgo.ApplicationCommandOption{},
 		},
-		{
-			Name:        "logs",
-			Description: "Uploads files importing for debugging",
-			Options:     []*discordgo.ApplicationCommandOption{},
-		},
+		// {
+		// 	Name:        "logs",
+		// 	Description: "Uploads files importing for debugging",
+		// 	Options:     []*discordgo.ApplicationCommandOption{},
+		// },
 	}
 	_, err := bot.ApplicationCommandBulkOverwrite(appId, guildId, commands)
 	if err != nil {
