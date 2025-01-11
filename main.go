@@ -555,54 +555,54 @@ func create_leaderboard(year string) *discordgo.MessageEmbed {
 
 func establishCommands(bot *discordgo.Session, guildId string, appId string) {
 	commands := []*discordgo.ApplicationCommand{
-		// {
-		// 	Name:        "own",
-		// 	Description: "Accuse someone of gaining",
-		// 	Options: []*discordgo.ApplicationCommandOption{
-		// 		{
-		// 			Type:        discordgo.ApplicationCommandOptionUser,
-		// 			Name:        "user",
-		// 			Description: "The user to mention",
-		// 			Required:    true,
-		// 		},
-		// 		{
-		// 			Type:        discordgo.ApplicationCommandOptionInteger,
-		// 			Name:        "number",
-		// 			Description: "An integer value",
-		// 			Required:    true,
-		// 		},
-		// 		{
-		// 			Type:        discordgo.ApplicationCommandOptionString,
-		// 			Name:        "reason",
-		// 			Description: "The reason for gaining",
-		// 			Required:    true,
-		// 		},
-		// 		{
-		// 			Type:        discordgo.ApplicationCommandOptionUser,
-		// 			Name:        "user2",
-		// 			Description: "Additional user to mention (optional)",
-		// 			Required:    false,
-		// 		},
-		// 		{
-		// 			Type:        discordgo.ApplicationCommandOptionUser,
-		// 			Name:        "user3",
-		// 			Description: "Additional user to mention (optional)",
-		// 			Required:    false,
-		// 		},
-		// 		{
-		// 			Type:        discordgo.ApplicationCommandOptionUser,
-		// 			Name:        "user4",
-		// 			Description: "Additional user to mention (optional)",
-		// 			Required:    false,
-		// 		},
-		// 		{
-		// 			Type:        discordgo.ApplicationCommandOptionUser,
-		// 			Name:        "user5",
-		// 			Description: "Additional user to mention (optional)",
-		// 			Required:    false,
-		// 		},
-		// 	},
-		// },
+		{
+			Name:        "own",
+			Description: "Accuse someone of gaining",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Type:        discordgo.ApplicationCommandOptionUser,
+					Name:        "user",
+					Description: "The user to mention",
+					Required:    true,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionInteger,
+					Name:        "number",
+					Description: "An integer value",
+					Required:    true,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "reason",
+					Description: "The reason for gaining",
+					Required:    true,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionUser,
+					Name:        "user2",
+					Description: "Additional user to mention (optional)",
+					Required:    false,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionUser,
+					Name:        "user3",
+					Description: "Additional user to mention (optional)",
+					Required:    false,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionUser,
+					Name:        "user4",
+					Description: "Additional user to mention (optional)",
+					Required:    false,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionUser,
+					Name:        "user5",
+					Description: "Additional user to mention (optional)",
+					Required:    false,
+				},
+			},
+		},
 		{
 			Name:        "leaderboard",
 			Description: fmt.Sprintf("Displays a top %d leaderboard", len(NUMBERS)),
