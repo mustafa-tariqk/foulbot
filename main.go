@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"foulbot/data"
 	"log"
-	"math/rand"
 	"net/http"
 	"os"
 	"os/exec"
@@ -637,7 +636,7 @@ func run_migrations() {
 }
 
 func shouldShowVotes() bool {
-	return rand.Float32() < 0.5
+	return true
 }
 
 // Add new helper function
