@@ -20,7 +20,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/inconshreveable/go-update"
 )
-a
+
 var (
 	VERSION     string
 	CONFIG_JSON = "config.json"
