@@ -327,7 +327,7 @@ func handleInputs(bot *discordgo.Session) {
 						Flags:   discordgo.MessageFlagsEphemeral,
 					},
 				})
-				msg, err := s.ChannelMessageSendEmbed(i.ChannelID, create_leaderboard(year))
+				msg, err := s.ChannelMessageSendEmbed(i.ChannelID, create_leaderboard(year, i.Member.User.ID))
 				if err != nil {
 					log.Printf("Failed to send leaderboard: %v", err)
 				}
@@ -532,7 +532,7 @@ func formatUserMentions(users []*discordgo.User) string {
 	return strings.Join(mentions, "\n")
 }
 
-func create_leaderboard(year string) *discordgo.MessageEmbed {
+func create_leaderboard(year string, userId string) *discordgo.MessageEmbed {
 	leaderboard := data.Leaderboard(year)
 	description := ""
 	for i, position := range leaderboard {
@@ -542,7 +542,7 @@ func create_leaderboard(year string) *discordgo.MessageEmbed {
 		description += fmt.Sprintf("%s <@%s>: %d\n", NUMBERS[i], position.UserId, position.Points)
 	}
 	return &discordgo.MessageEmbed{
-		Title:       "Leaderboard",
+		Title:       fmt.Sprintf("Leaderboard (made by <@%s>)", userId),
 		Description: description,
 	}
 }
