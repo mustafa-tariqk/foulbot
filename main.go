@@ -20,7 +20,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/inconshreveable/go-update"
 )
-
+a
 var (
 	VERSION     string
 	CONFIG_JSON = "config.json"
@@ -542,7 +542,7 @@ func create_leaderboard(year string, userId string) *discordgo.MessageEmbed {
 		description += fmt.Sprintf("%s <@%s>: %d\n", NUMBERS[i], position.UserId, position.Points)
 	}
 	return &discordgo.MessageEmbed{
-		Title:       fmt.Sprintf("Leaderboard (made by %s)", userId),
+		Title:       fmt.Sprintf("Leaderboard (%s)", userId),
 		Description: description,
 	}
 }
