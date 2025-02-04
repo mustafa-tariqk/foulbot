@@ -524,7 +524,7 @@ func create_leaderboard(year string, userId string) *discordgo.MessageEmbed {
 	}
 	return &discordgo.MessageEmbed{
 		Title:       fmt.Sprintf("Leaderboard %s", year),
-		Description: description + fmt.Sprintf("\n\nMade by <@%s>", userId),
+		Description: description + fmt.Sprintf("\nMade by <@%s>", userId),
 	}
 }
 
