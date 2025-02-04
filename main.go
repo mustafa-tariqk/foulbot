@@ -21,11 +21,8 @@ import (
 	"github.com/inconshreveable/go-update"
 )
 
-var AppId string
-
 func main() {
 	bot, guildId, appId := loadEnv()
-	AppId = appId
 
 	handleInputs(bot)
 
@@ -87,33 +84,27 @@ func handleExpiredPolls(bot *discordgo.Session) {
 						Value:  fmt.Sprintf("[%s](https://discord.com/channels/%s/%s/%s)", poll.Reason, bot.State.Guilds[0].ID, poll.ChannelId, poll.MessageId),
 						Inline: false,
 					},
+					{
+						Name: "Votes For",
+						Value: func() string {
+							if len(poll.VotesFor) == 0 {
+								return "none"
+							}
+							return fmt.Sprintf("<@%s>", strings.Join(poll.VotesFor, ">\n<@"))
+						}(),
+						Inline: true,
+					},
+					{
+						Name: "Votes Against",
+						Value: func() string {
+							if len(poll.VotesAgainst) == 0 {
+								return "none"
+							}
+							return fmt.Sprintf("<@%s>", strings.Join(poll.VotesAgainst, ">\n<@"))
+						}(),
+						Inline: true,
+					},
 				}
-
-				if shouldShowVotes() {
-					fields = append(fields,
-						&discordgo.MessageEmbedField{
-							Name: "Votes For",
-							Value: func() string {
-								if len(poll.VotesFor) == 0 {
-									return "none"
-								}
-								return fmt.Sprintf("<@%s>", strings.Join(poll.VotesFor, ">\n<@"))
-							}(),
-							Inline: true,
-						},
-						&discordgo.MessageEmbedField{
-							Name: "Votes Against",
-							Value: func() string {
-								if len(poll.VotesAgainst) == 0 {
-									return "none"
-								}
-								return fmt.Sprintf("<@%s>", strings.Join(poll.VotesAgainst, ">\n<@"))
-							}(),
-							Inline: true,
-						},
-					)
-				}
-
 				embed := &discordgo.MessageEmbed{
 					Title:  map[bool]string{true: "Passed", false: "Failed"}[poll.Passed],
 					Color:  0x417e4b, // Green for passed
@@ -151,30 +142,12 @@ func truncateString(s string, maxLen int) string {
 	return s[:maxLen-3] + "..."
 }
 
-var lastPollTime = make(map[string]time.Time)
-
 func handleInputs(bot *discordgo.Session) {
 	bot.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		if i.Type == discordgo.InteractionApplicationCommand {
 			options := i.ApplicationCommandData().Options
 			switch i.ApplicationCommandData().Name {
 			case "own":
-				userID := i.Member.User.ID
-				now := time.Now()
-
-				if lastTime, exists := lastPollTime[userID]; exists && now.Sub(lastTime) < 5*time.Minute {
-					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-						Type: discordgo.InteractionResponseChannelMessageWithSource,
-						Data: &discordgo.InteractionResponseData{
-							Content: "You can only create one poll every 5 minutes.",
-							Flags:   discordgo.MessageFlagsEphemeral,
-						},
-					})
-					return
-				}
-
-				lastPollTime[userID] = now
-
 				user := options[0].UserValue(s)
 				number := options[1].IntValue()
 				reason := options[2].StringValue()
@@ -614,10 +587,6 @@ func establishCommands(bot *discordgo.Session, guildId string, appId string) {
 }
 
 func run_migrations() {
-}
-
-func shouldShowVotes() bool {
-	return true
 }
 
 // Add new helper function
