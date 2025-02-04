@@ -2,8 +2,8 @@ package main
 
 import (
 	"archive/zip"
-	"encoding/json"
 	"fmt"
+	"foulbot/config"
 	"foulbot/data"
 	"log"
 	"net/http"
@@ -20,20 +20,6 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/inconshreveable/go-update"
 )
-
-var (
-	VERSION     string
-	CONFIG_JSON = "config.json"
-	POLL_LENGTH = 16 * time.Hour
-	NUMBERS     = []string{":one:", ":two:", ":three:", ":four:", ":five:",
-		":six:", ":seven:", ":eight:", ":nine:", ":keycap_ten:"}
-)
-
-type Config struct {
-	DiscordToken   string `json:"discord_token"`
-	DiscordGuildID string `json:"discord_guild_id"`
-	DiscordAppID   string `json:"discord_application_id"`
-}
 
 var AppId string
 
@@ -61,14 +47,9 @@ func main() {
 }
 
 func loadEnv() (*discordgo.Session, string, string) {
-	configData, err := os.ReadFile(CONFIG_JSON)
+	config, err := config.LoadConfig()
 	if err != nil {
-		log.Fatalf("could not read config file: %s", err)
-	}
-
-	var config Config
-	if err := json.Unmarshal(configData, &config); err != nil {
-		log.Fatalf("could not parse config file: %s", err)
+		log.Fatalf("could not load config: %s", err)
 	}
 
 	bot, err := discordgo.New("Bot " + config.DiscordToken)
@@ -240,7 +221,7 @@ func handleInputs(bot *discordgo.Session) {
 					},
 				})
 
-				expiry := time.Now().Add(POLL_LENGTH).Format(time.RFC3339)
+				expiry := time.Now().Add(config.POLL_LENGTH).Format(time.RFC3339)
 
 				pollMsg, err := s.ChannelMessageSendComplex(i.ChannelID, &discordgo.MessageSend{
 					Embeds: []*discordgo.MessageEmbed{
@@ -327,7 +308,7 @@ func handleInputs(bot *discordgo.Session) {
 						Flags:   discordgo.MessageFlagsEphemeral,
 					},
 				})
-				msg, err := s.ChannelMessageSendEmbed(i.ChannelID, create_leaderboard(year, i.Member.User.Username))
+				msg, err := s.ChannelMessageSendEmbed(i.ChannelID, create_leaderboard(year, i.Member.User.ID))
 				if err != nil {
 					log.Printf("Failed to send leaderboard: %v", err)
 				}
@@ -336,7 +317,7 @@ func handleInputs(bot *discordgo.Session) {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
-						Content: fmt.Sprintf("Current version: %s", VERSION),
+						Content: fmt.Sprintf("Current version: %s", config.VERSION),
 						Flags:   discordgo.MessageFlagsEphemeral,
 					},
 				})
@@ -536,14 +517,14 @@ func create_leaderboard(year string, userId string) *discordgo.MessageEmbed {
 	leaderboard := data.Leaderboard(year)
 	description := ""
 	for i, position := range leaderboard {
-		if i >= len(NUMBERS) {
+		if i >= len(config.NUMBERS) {
 			break
 		}
-		description += fmt.Sprintf("%s <@%s>: %d\n", NUMBERS[i], position.UserId, position.Points)
+		description += fmt.Sprintf("%s <@%s>: %d\n", config.NUMBERS[i], position.UserId, position.Points)
 	}
 	return &discordgo.MessageEmbed{
-		Title:       fmt.Sprintf("Leaderboard %s (%s)", year, userId),
-		Description: description,
+		Title:       fmt.Sprintf("Leaderboard %s", year),
+		Description: description + fmt.Sprintf("\n\nMade by <@%s>", userId),
 	}
 }
 
@@ -599,7 +580,7 @@ func establishCommands(bot *discordgo.Session, guildId string, appId string) {
 		},
 		{
 			Name:        "leaderboard",
-			Description: fmt.Sprintf("Displays a top %d leaderboard", len(NUMBERS)),
+			Description: fmt.Sprintf("Displays a top %d leaderboard", len(config.NUMBERS)),
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionString,
