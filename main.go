@@ -177,6 +177,36 @@ func establishCommands(bot *discordgo.Session, guildId string, appId string) {
 					Description: "Additional user to mention (optional)",
 					Required:    false,
 				},
+				{
+					Type:        discordgo.ApplicationCommandOptionUser,
+					Name:        "user6",
+					Description: "Additional user to mention (optional)",
+					Required:    false,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionUser,
+					Name:        "user7",
+					Description: "Additional user to mention (optional)",
+					Required:    false,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionUser,
+					Name:        "user8",
+					Description: "Additional user to mention (optional)",
+					Required:    false,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionUser,
+					Name:        "user9",
+					Description: "Additional user to mention (optional)",
+					Required:    false,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionUser,
+					Name:        "user10",
+					Description: "Additional user to mention (optional)",
+					Required:    false,
+				},
 			},
 		},
 		{
