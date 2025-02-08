@@ -13,10 +13,18 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/inconshreveable/go-update"
+)
+
+// Global rate limiter variables
+var (
+	userCommandTimestamps = make(map[string]time.Time)
+	rateLimiterMutex      = &sync.Mutex{}
+	rateLimitThreshold    = 10 * time.Minute // adjust as needed
 )
 
 func HandleInputs(bot *discordgo.Session) {
@@ -25,6 +33,23 @@ func HandleInputs(bot *discordgo.Session) {
 			options := i.ApplicationCommandData().Options
 			switch i.ApplicationCommandData().Name {
 			case "own":
+				// Rate limiter check per user ID
+				userID := i.Member.User.ID
+				rateLimiterMutex.Lock()
+				if lastTime, exists := userCommandTimestamps[userID]; exists && time.Since(lastTime) < rateLimitThreshold {
+					rateLimiterMutex.Unlock()
+					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: "You can only make a poll every " + rateLimitThreshold.String() + ".",
+							Flags:   discordgo.MessageFlagsEphemeral,
+						},
+					})
+					return
+				}
+				userCommandTimestamps[userID] = time.Now()
+				rateLimiterMutex.Unlock()
+
 				ch, err := s.Channel(i.ChannelID)
 				if err == nil {
 					if ch.Type == discordgo.ChannelTypeGuildPublicThread ||
