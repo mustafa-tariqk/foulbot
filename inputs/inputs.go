@@ -25,6 +25,25 @@ func HandleInputs(bot *discordgo.Session) {
 			options := i.ApplicationCommandData().Options
 			switch i.ApplicationCommandData().Name {
 			case "own":
+				ch, err := s.Channel(i.ChannelID)
+				if err == nil {
+					if ch.Type == discordgo.ChannelTypeGuildPublicThread ||
+						ch.Type == discordgo.ChannelTypeGuildPrivateThread ||
+						ch.Type == discordgo.ChannelTypeGuildNewsThread {
+						s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+							Type: discordgo.InteractionResponseChannelMessageWithSource,
+							Data: &discordgo.InteractionResponseData{
+								Content: "Polls cannot be created in threads. Please use a regular channel.",
+								Flags:   discordgo.MessageFlagsEphemeral,
+							},
+						})
+						return
+					}
+				} else {
+					// Optionally log or handle failure to get channel data.
+					log.Printf("Failed to get channel data: %v", err)
+				}
+
 				user := options[0].UserValue(s)
 				number := options[1].IntValue()
 				reason := options[2].StringValue()
