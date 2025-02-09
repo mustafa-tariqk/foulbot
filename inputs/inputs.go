@@ -24,7 +24,6 @@ import (
 var (
 	userCommandTimestamps = make(map[string]time.Time)
 	rateLimiterMutex      = &sync.Mutex{}
-	rateLimitThreshold    = 10 * time.Minute // adjust as needed
 )
 
 func HandleInputs(bot *discordgo.Session) {
@@ -36,12 +35,12 @@ func HandleInputs(bot *discordgo.Session) {
 				// Rate limiter check per user ID
 				userID := i.Member.User.ID
 				rateLimiterMutex.Lock()
-				if lastTime, exists := userCommandTimestamps[userID]; exists && time.Since(lastTime) < rateLimitThreshold {
+				if lastTime, exists := userCommandTimestamps[userID]; exists && time.Since(lastTime) < config.POLL_LENGTH {
 					rateLimiterMutex.Unlock()
 					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 						Type: discordgo.InteractionResponseChannelMessageWithSource,
 						Data: &discordgo.InteractionResponseData{
-							Content: "You can only make a poll every " + rateLimitThreshold.String() + ".",
+							Content: "You can only make a poll every " + config.POLL_LENGTH.String() + ".",
 							Flags:   discordgo.MessageFlagsEphemeral,
 						},
 					})
