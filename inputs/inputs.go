@@ -123,6 +123,11 @@ func HandleInputs(bot *discordgo.Session) {
 							Title: "Own",
 							Fields: []*discordgo.MessageEmbedField{
 								{
+									Name:   "Creator",
+									Value:  fmt.Sprintf("<@%s>", i.Member.User.ID),
+									Inline: true,
+								},
+								{
 									Name:   "Gainers",
 									Value:  formatUserMentions(users),
 									Inline: true,
