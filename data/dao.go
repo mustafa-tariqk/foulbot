@@ -34,6 +34,9 @@ var finalizePollQuery string
 //go:embed queries/collect_gainers.sql
 var collectGainersQuery string
 
+//go:embed queries/status.sql
+var statusQuery string
+
 var db *sql.DB
 var err error
 
@@ -198,4 +201,20 @@ func Leaderboard(year string) (podium []Position) {
 		podium = append(podium, position)
 	}
 	return podium
+}
+
+func Status(userId string, year string) (points int64) {
+	rows, err := db.Query(statusQuery, userId, year)
+	if err != nil {
+		panic(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		// remove "var points int64"
+		err = rows.Scan(&points)
+		if err != nil {
+			panic(err)
+		}
+	}
+	return points
 }

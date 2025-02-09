@@ -371,6 +371,41 @@ func HandleInputs(bot *discordgo.Session) {
 				if err != nil {
 					log.Printf("Failed to upload logs zip: %v", err)
 				}
+			case "status":
+				// takes a user as argument, returns how many points they have for a year (optional), default to current year
+				var year string
+				if len(options) > 1 {
+					year = options[1].StringValue()
+				} else {
+					year = strconv.Itoa(time.Now().Year())
+				}
+				user := options[0].UserValue(s)
+				if user == nil {
+					user = i.Member.User
+				}
+				points := data.Status(user.ID, year)
+				embed := &discordgo.MessageEmbed{
+					Title: "Status",
+					Fields: []*discordgo.MessageEmbedField{
+						{Name: "User", Value: fmt.Sprintf("<@%s>", user.ID), Inline: true},
+						{
+							Name:   "Points",
+							Value:  fmt.Sprintf("%d", points),
+							Inline: true,
+						},
+						{
+							Name:   "Year",
+							Value:  year,
+							Inline: true,
+						},
+					},
+				}
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Embeds: []*discordgo.MessageEmbed{embed},
+					},
+				})
 			}
 		}
 	})

@@ -236,6 +236,24 @@ func establishCommands(bot *discordgo.Session, guildId string, appId string) {
 			Description: "Uploads files importing for debugging",
 			Options:     []*discordgo.ApplicationCommandOption{},
 		},
+		{
+			Name:        "status",
+			Description: "Displays how many points a user has",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Type:        discordgo.ApplicationCommandOptionUser,
+					Name:        "user",
+					Description: "The user to check",
+					Required:    true,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "year",
+					Description: "Year to show status for (defaults to current year)",
+					Required:    false,
+				},
+			},
+		},
 	}
 	_, err := bot.ApplicationCommandBulkOverwrite(appId, guildId, commands)
 	if err != nil {
