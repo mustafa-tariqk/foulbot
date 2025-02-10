@@ -13,17 +13,10 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/inconshreveable/go-update"
-)
-
-// Global rate limiter variables
-var (
-	userCommandTimestamps = make(map[string]time.Time)
-	rateLimiterMutex      = &sync.Mutex{}
 )
 
 func HandleInputs(bot *discordgo.Session) {
@@ -32,22 +25,16 @@ func HandleInputs(bot *discordgo.Session) {
 			options := i.ApplicationCommandData().Options
 			switch i.ApplicationCommandData().Name {
 			case "own":
-				// Rate limiter check per user ID
-				userID := i.Member.User.ID
-				rateLimiterMutex.Lock()
-				if lastTime, exists := userCommandTimestamps[userID]; exists && time.Since(lastTime) < config.POLL_LENGTH {
-					rateLimiterMutex.Unlock()
+				if data.HasActivePoll(i.Member.User.ID) {
 					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 						Type: discordgo.InteractionResponseChannelMessageWithSource,
 						Data: &discordgo.InteractionResponseData{
-							Content: "You can only make a poll every " + config.POLL_LENGTH.String() + ".",
+							Content: "You already have an active poll.",
 							Flags:   discordgo.MessageFlagsEphemeral,
 						},
 					})
 					return
 				}
-				userCommandTimestamps[userID] = time.Now()
-				rateLimiterMutex.Unlock()
 
 				ch, err := s.Channel(i.ChannelID)
 				if err == nil {
@@ -372,7 +359,6 @@ func HandleInputs(bot *discordgo.Session) {
 					log.Printf("Failed to upload logs zip: %v", err)
 				}
 			case "status":
-				// takes a user as argument, returns how many points they have for a year (optional), default to current year
 				var year string
 				if len(options) > 1 {
 					year = options[1].StringValue()

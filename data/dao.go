@@ -37,6 +37,9 @@ var collectGainersQuery string
 //go:embed queries/status.sql
 var statusQuery string
 
+//go:embed queries/has_active_poll.sql
+var hasActivePollQuery string
+
 var db *sql.DB
 var err error
 
@@ -89,6 +92,15 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func HasActivePoll(userId string) bool {
+	var count int
+	err = db.QueryRow(hasActivePollQuery, userId).Scan(&count)
+	if err != nil {
+		panic(err)
+	}
+	return count > 0
 }
 
 func CreatePoll(poll Poll) {
