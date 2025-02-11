@@ -124,6 +124,23 @@ func Vote(channelId, messageId, voterId string, vote bool) {
 	}
 }
 
+func ExpiredPolls() (polls []Poll) {
+	expiredRows, err := db.Query(expiredRowsQuery)
+	if err != nil {
+		panic(err)
+	}
+	defer expiredRows.Close()
+	for expiredRows.Next() {
+		var poll Poll
+		err = expiredRows.Scan(&poll.MessageId, &poll.ChannelId, &poll.CreatorId, &poll.Points, &poll.Reason, &poll.Expiry)
+		if err != nil {
+			panic(err)
+		}
+		polls = append(polls, poll)
+	}
+	return polls
+}
+
 func EvaluatePolls() (polls []EvaluatedPoll) {
 	expiredRows, err := db.Query(expiredRowsQuery)
 	if err != nil {

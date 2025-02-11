@@ -55,6 +55,30 @@ func handleExpiredPolls(bot *discordgo.Session) {
 	ticker := time.NewTicker(1 * time.Minute)
 	go func() {
 		for range ticker.C {
+
+			expiredPolls := data.ExpiredPolls() // returns []Poll
+			for _, poll := range expiredPolls {
+				// Count 👍 reactions
+				upReactions, err := bot.MessageReactions(poll.ChannelId, poll.MessageId, "👍", 100, "", "")
+				if err != nil {
+					log.Printf("Failed to get thumbs up reactions for poll %s: %v", poll.MessageId, err)
+				} else {
+					for _, user := range upReactions {
+						data.Vote(poll.ChannelId, poll.MessageId, user.ID, true)
+					}
+				}
+
+				// Count 👎 reactions
+				downReactions, err := bot.MessageReactions(poll.ChannelId, poll.MessageId, "👎", 100, "", "")
+				if err != nil {
+					log.Printf("Failed to get thumbs down reactions for poll %s: %v", poll.MessageId, err)
+				} else {
+					for _, user := range downReactions {
+						data.Vote(poll.ChannelId, poll.MessageId, user.ID, false)
+					}
+				}
+			}
+
 			evaluatedPolls := data.EvaluatePolls()
 			for _, poll := range evaluatedPolls {
 				fields := []*discordgo.MessageEmbedField{
