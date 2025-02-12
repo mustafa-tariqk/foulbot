@@ -16,3 +16,5 @@
 
 # ...even if they are in subdirectories
 !*/
+
+foulbot.session.sql
