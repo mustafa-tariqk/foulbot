@@ -83,6 +83,11 @@ func handleExpiredPolls(bot *discordgo.Session) {
 			for _, poll := range evaluatedPolls {
 				fields := []*discordgo.MessageEmbedField{
 					{
+						Name:   "Creator",
+						Value:  fmt.Sprintf("<@%s>", poll.CreatorId),
+						Inline: true,
+					},
+					{
 						Name:   "Gainers",
 						Value:  fmt.Sprintf("<@%s>", strings.Join(poll.GainerIds, ">\n<@")),
 						Inline: true,

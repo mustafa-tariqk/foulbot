@@ -25,17 +25,6 @@ func HandleInputs(bot *discordgo.Session) {
 			options := i.ApplicationCommandData().Options
 			switch i.ApplicationCommandData().Name {
 			case "own":
-				if data.HasActivePoll(i.Member.User.ID) {
-					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-						Type: discordgo.InteractionResponseChannelMessageWithSource,
-						Data: &discordgo.InteractionResponseData{
-							Content: "You already have an active poll.",
-							Flags:   discordgo.MessageFlagsEphemeral,
-						},
-					})
-					return
-				}
-
 				ch, err := s.Channel(i.ChannelID)
 				if err == nil {
 					if ch.Type == discordgo.ChannelTypeGuildPublicThread ||
