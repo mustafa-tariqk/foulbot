@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -251,7 +250,7 @@ func HandleInputs(bot *discordgo.Session) {
 				os.Exit(0)
 			case "logs":
 				// Create a temporary zip file
-				zipFile, err := os.CreateTemp("", "foulbot-logs-*.zip")
+				zipFile, err := os.CreateTemp("", "foulbot-db-*.zip")
 				if err != nil {
 					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 						Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -269,79 +268,92 @@ func HandleInputs(bot *discordgo.Session) {
 				zipWriter := zip.NewWriter(zipFile)
 				defer zipWriter.Close()
 
-				// Walk through current directory
-				err = filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
-					if err != nil {
-						return err
-					}
-
-					// Skip directories and binary files
-					if info.IsDir() || strings.HasPrefix(path, "foulbot-") || strings.HasPrefix(path, ".foulbot-") {
-						return nil
-					}
-
-					// Create zip entry
-					f, err := zipWriter.Create(path)
-					if err != nil {
-						return err
-					}
-
-					// Copy file contents to zip
-					content, err := os.ReadFile(path)
-					if err != nil {
-						return err
-					}
-					_, err = f.Write(content)
-					return err
-				})
-
-				if err != nil {
-					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-						Type: discordgo.InteractionResponseChannelMessageWithSource,
-						Data: &discordgo.InteractionResponseData{
-							Content: fmt.Sprintf("Failed to create zip: %s", err),
-							Flags:   discordgo.MessageFlagsEphemeral,
-						},
-					})
-					return
-				}
-				zipWriter.Close()
-
-				// Reopen zip file for reading
-				zipReader, err := os.Open(zipFile.Name())
-				if err != nil {
-					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-						Type: discordgo.InteractionResponseChannelMessageWithSource,
-						Data: &discordgo.InteractionResponseData{
-							Content: fmt.Sprintf("Failed to read zip: %s", err),
-							Flags:   discordgo.MessageFlagsEphemeral,
-						},
-					})
-					return
-				}
-				defer zipReader.Close()
-
-				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Content: "Uploading logs...",
-						Flags:   discordgo.MessageFlagsEphemeral,
-					},
-				})
-
-				_, err = s.FollowupMessageCreate(i.Interaction, false, &discordgo.WebhookParams{
-					Content: "Here are the log files:",
-					Flags:   discordgo.MessageFlagsEphemeral,
-					Files: []*discordgo.File{
-						{
-							Name:   "foulbot-logs.zip",
-							Reader: zipReader,
-						},
-					},
-				})
-				if err != nil {
-					log.Printf("Failed to upload logs zip: %v", err)
-				}
+				 // Add only foulbot.sqlite to zip
+				 dbPath := "foulbot.sqlite"
+				 if _, err := os.Stat(dbPath); err == nil {
+					 f, err := zipWriter.Create(dbPath)
+					 if err != nil {
+						 s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+							 Type: discordgo.InteractionResponseChannelMessageWithSource,
+							 Data: &discordgo.InteractionResponseData{
+								 Content: fmt.Sprintf("Failed to create zip entry: %s", err),
+								 Flags:   discordgo.MessageFlagsEphemeral,
+							 },
+						 })
+						 return
+					 }
+	 
+					 content, err := os.ReadFile(dbPath)
+					 if err != nil {
+						 s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+							 Type: discordgo.InteractionResponseChannelMessageWithSource,
+							 Data: &discordgo.InteractionResponseData{
+								 Content: fmt.Sprintf("Failed to read database: %s", err),
+								 Flags:   discordgo.MessageFlagsEphemeral,
+							 },
+						 })
+						 return
+					 }
+					 
+					 _, err = f.Write(content)
+					 if err != nil {
+						 s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+							 Type: discordgo.InteractionResponseChannelMessageWithSource,
+							 Data: &discordgo.InteractionResponseData{
+								 Content: fmt.Sprintf("Failed to write to zip: %s", err),
+								 Flags:   discordgo.MessageFlagsEphemeral,
+							 },
+						 })
+						 return
+					 }
+				 } else {
+					 s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						 Type: discordgo.InteractionResponseChannelMessageWithSource,
+						 Data: &discordgo.InteractionResponseData{
+							 Content: "Database file not found",
+							 Flags:   discordgo.MessageFlagsEphemeral,
+						 },
+					 })
+					 return
+				 }
+	 
+				 zipWriter.Close()
+	 
+				 // Reopen zip file for reading
+				 zipReader, err := os.Open(zipFile.Name())
+				 if err != nil {
+					 s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						 Type: discordgo.InteractionResponseChannelMessageWithSource,
+						 Data: &discordgo.InteractionResponseData{
+							 Content: fmt.Sprintf("Failed to read zip: %s", err),
+							 Flags:   discordgo.MessageFlagsEphemeral,
+						 },
+					 })
+					 return
+				 }
+				 defer zipReader.Close()
+	 
+				 s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					 Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
+					 Data: &discordgo.InteractionResponseData{
+						 Content: "Uploading database...",
+						 Flags:   discordgo.MessageFlagsEphemeral,
+					 },
+				 })
+	 
+				 _, err = s.FollowupMessageCreate(i.Interaction, false, &discordgo.WebhookParams{
+					 Content: "Here is the database file:",
+					 Flags:   discordgo.MessageFlagsEphemeral,
+					 Files: []*discordgo.File{
+						 {
+							 Name:   "foulbot-db.zip",
+							 Reader: zipReader,
+						 },
+					 },
+				 })
+				 if err != nil {
+					 log.Printf("Failed to upload database zip: %v", err)
+				 }
 			case "status":
 				var year string
 				if len(options) > 1 {
