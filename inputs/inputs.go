@@ -164,11 +164,20 @@ func HandleInputs(bot *discordgo.Session) {
 				data.CreatePoll(*poll)
 			case "leaderboard":
 				var year string
-				if len(options) > 0 {
-					year = options[0].StringValue()
-				} else {
+				var divisor int64 = 1
+				for _, opt := range options {
+					switch opt.Name {
+					case "year":
+						year = opt.StringValue()
+					case "divisor":
+						divisor = opt.IntValue()
+					}
+				}
+
+				if year == "" {
 					year = strconv.Itoa(time.Now().Year())
 				}
+
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
@@ -176,7 +185,7 @@ func HandleInputs(bot *discordgo.Session) {
 						Flags:   discordgo.MessageFlagsEphemeral,
 					},
 				})
-				msg, err := s.ChannelMessageSendEmbed(i.ChannelID, create_leaderboard(year, i.Member.User.ID))
+				msg, err := s.ChannelMessageSendEmbed(i.ChannelID, create_leaderboard(year, i.Member.User.ID, divisor))
 				if err != nil {
 					log.Printf("Failed to send leaderboard: %v", err)
 				}
@@ -268,104 +277,118 @@ func HandleInputs(bot *discordgo.Session) {
 				zipWriter := zip.NewWriter(zipFile)
 				defer zipWriter.Close()
 
-				 // Add only foulbot.sqlite to zip
-				 dbPath := "foulbot.sqlite"
-				 if _, err := os.Stat(dbPath); err == nil {
-					 f, err := zipWriter.Create(dbPath)
-					 if err != nil {
-						 s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-							 Type: discordgo.InteractionResponseChannelMessageWithSource,
-							 Data: &discordgo.InteractionResponseData{
-								 Content: fmt.Sprintf("Failed to create zip entry: %s", err),
-								 Flags:   discordgo.MessageFlagsEphemeral,
-							 },
-						 })
-						 return
-					 }
-	 
-					 content, err := os.ReadFile(dbPath)
-					 if err != nil {
-						 s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-							 Type: discordgo.InteractionResponseChannelMessageWithSource,
-							 Data: &discordgo.InteractionResponseData{
-								 Content: fmt.Sprintf("Failed to read database: %s", err),
-								 Flags:   discordgo.MessageFlagsEphemeral,
-							 },
-						 })
-						 return
-					 }
-					 
-					 _, err = f.Write(content)
-					 if err != nil {
-						 s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-							 Type: discordgo.InteractionResponseChannelMessageWithSource,
-							 Data: &discordgo.InteractionResponseData{
-								 Content: fmt.Sprintf("Failed to write to zip: %s", err),
-								 Flags:   discordgo.MessageFlagsEphemeral,
-							 },
-						 })
-						 return
-					 }
-				 } else {
-					 s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-						 Type: discordgo.InteractionResponseChannelMessageWithSource,
-						 Data: &discordgo.InteractionResponseData{
-							 Content: "Database file not found",
-							 Flags:   discordgo.MessageFlagsEphemeral,
-						 },
-					 })
-					 return
-				 }
-	 
-				 zipWriter.Close()
-	 
-				 // Reopen zip file for reading
-				 zipReader, err := os.Open(zipFile.Name())
-				 if err != nil {
-					 s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-						 Type: discordgo.InteractionResponseChannelMessageWithSource,
-						 Data: &discordgo.InteractionResponseData{
-							 Content: fmt.Sprintf("Failed to read zip: %s", err),
-							 Flags:   discordgo.MessageFlagsEphemeral,
-						 },
-					 })
-					 return
-				 }
-				 defer zipReader.Close()
-	 
-				 s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					 Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
-					 Data: &discordgo.InteractionResponseData{
-						 Content: "Uploading database...",
-						 Flags:   discordgo.MessageFlagsEphemeral,
-					 },
-				 })
-	 
-				 _, err = s.FollowupMessageCreate(i.Interaction, false, &discordgo.WebhookParams{
-					 Content: "Here is the database file:",
-					 Flags:   discordgo.MessageFlagsEphemeral,
-					 Files: []*discordgo.File{
-						 {
-							 Name:   "foulbot-db.zip",
-							 Reader: zipReader,
-						 },
-					 },
-				 })
-				 if err != nil {
-					 log.Printf("Failed to upload database zip: %v", err)
-				 }
+				// Add only foulbot.sqlite to zip
+				dbPath := "foulbot.sqlite"
+				if _, err := os.Stat(dbPath); err == nil {
+					f, err := zipWriter.Create(dbPath)
+					if err != nil {
+						s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+							Type: discordgo.InteractionResponseChannelMessageWithSource,
+							Data: &discordgo.InteractionResponseData{
+								Content: fmt.Sprintf("Failed to create zip entry: %s", err),
+								Flags:   discordgo.MessageFlagsEphemeral,
+							},
+						})
+						return
+					}
+
+					content, err := os.ReadFile(dbPath)
+					if err != nil {
+						s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+							Type: discordgo.InteractionResponseChannelMessageWithSource,
+							Data: &discordgo.InteractionResponseData{
+								Content: fmt.Sprintf("Failed to read database: %s", err),
+								Flags:   discordgo.MessageFlagsEphemeral,
+							},
+						})
+						return
+					}
+
+					_, err = f.Write(content)
+					if err != nil {
+						s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+							Type: discordgo.InteractionResponseChannelMessageWithSource,
+							Data: &discordgo.InteractionResponseData{
+								Content: fmt.Sprintf("Failed to write to zip: %s", err),
+								Flags:   discordgo.MessageFlagsEphemeral,
+							},
+						})
+						return
+					}
+				} else {
+					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: "Database file not found",
+							Flags:   discordgo.MessageFlagsEphemeral,
+						},
+					})
+					return
+				}
+
+				zipWriter.Close()
+
+				// Reopen zip file for reading
+				zipReader, err := os.Open(zipFile.Name())
+				if err != nil {
+					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: fmt.Sprintf("Failed to read zip: %s", err),
+							Flags:   discordgo.MessageFlagsEphemeral,
+						},
+					})
+					return
+				}
+				defer zipReader.Close()
+
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "Uploading database...",
+						Flags:   discordgo.MessageFlagsEphemeral,
+					},
+				})
+
+				_, err = s.FollowupMessageCreate(i.Interaction, false, &discordgo.WebhookParams{
+					Content: "Here is the database file:",
+					Flags:   discordgo.MessageFlagsEphemeral,
+					Files: []*discordgo.File{
+						{
+							Name:   "foulbot-db.zip",
+							Reader: zipReader,
+						},
+					},
+				})
+				if err != nil {
+					log.Printf("Failed to upload database zip: %v", err)
+				}
 			case "status":
 				var year string
-				if len(options) > 1 {
-					year = options[1].StringValue()
-				} else {
+				var user *discordgo.User
+				var divisor int64 = 1
+
+				for _, opt := range options {
+					switch opt.Name {
+					case "year":
+						year = opt.StringValue()
+					case "user":
+						user = opt.UserValue(s)
+					case "divisor":
+						divisor = opt.IntValue()
+					}
+				}
+
+				if year == "" {
 					year = strconv.Itoa(time.Now().Year())
 				}
-				user := options[0].UserValue(s)
 				if user == nil {
 					user = i.Member.User
 				}
 				points := data.Status(user.ID, year)
+				if divisor > 1 {
+					points /= divisor
+				}
 				embed := &discordgo.MessageEmbed{
 					Title: "Status",
 					Fields: []*discordgo.MessageEmbedField{
@@ -455,14 +478,18 @@ func truncateString(s string, maxLen int) string {
 	return s[:maxLen-3] + "..."
 }
 
-func create_leaderboard(year string, userId string) *discordgo.MessageEmbed {
+func create_leaderboard(year string, userId string, divisor int64) *discordgo.MessageEmbed {
 	leaderboard := data.Leaderboard(year)
 	description := ""
 	for i, position := range leaderboard {
 		if i >= len(config.NUMBERS) {
 			break
 		}
-		description += fmt.Sprintf("%s <@%s>: %d\n", config.NUMBERS[i], position.UserId, position.Points)
+		points := position.Points
+		if divisor > 1 {
+			points /= divisor
+		}
+		description += fmt.Sprintf("%s <@%s>: %d\n", config.NUMBERS[i], position.UserId, points)
 	}
 	return &discordgo.MessageEmbed{
 		Title:       fmt.Sprintf("Leaderboard %s", year),

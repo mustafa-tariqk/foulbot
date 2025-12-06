@@ -243,6 +243,12 @@ func establishCommands(bot *discordgo.Session, guildId string, appId string) {
 					Description: "Year to show leaderboard for (defaults to current year)",
 					Required:    false,
 				},
+				{
+					Type:        discordgo.ApplicationCommandOptionInteger,
+					Name:        "divisor",
+					Description: "An integer to divide points by",
+					Required:    false,
+				},
 			},
 		},
 		{
@@ -274,6 +280,12 @@ func establishCommands(bot *discordgo.Session, guildId string, appId string) {
 					Type:        discordgo.ApplicationCommandOptionString,
 					Name:        "year",
 					Description: "Year to show status for (defaults to current year)",
+					Required:    false,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionInteger,
+					Name:        "divisor",
+					Description: "An integer to divide points by",
 					Required:    false,
 				},
 			},
